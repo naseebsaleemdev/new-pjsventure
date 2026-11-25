@@ -146,6 +146,17 @@ export interface ChassisInspectionReport {
   }[];
   inspectorNote: string;
   linkedVehicleId?: string;
+  vinBreakdown?: {
+    is17DigitVin: boolean;
+    wmi: string;
+    originCountry: string;
+    manufacturer: string;
+    vds: string;
+    checkDigit: string;
+    yearCode: string;
+    plantCode: string;
+    serialNumber: string;
+  };
 }
 
 export type StockLocationType = 'Japan Yard' | 'Port Balance (At Port)' | 'Port Balance (In Transit)';

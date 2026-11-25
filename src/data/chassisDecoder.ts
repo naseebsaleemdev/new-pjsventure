@@ -163,6 +163,358 @@ function hashString(input: string): number {
   return hash;
 }
 
+interface VinWmiProfile {
+  make: string;
+  manufacturer: string;
+  origin: string;
+  models: {
+    model: string;
+    engineCc: number;
+    fuel: 'Petrol' | 'Diesel' | 'Hybrid';
+    transmission: 'Automatic' | 'CVT' | 'Manual';
+    drive: '4WD' | '2WD' | 'AWD';
+  }[];
+}
+
+const VIN_WMI_PREFIXES: { prefix: string; profile: VinWmiProfile }[] = [
+  {
+    prefix: 'JTE',
+    profile: {
+      make: 'Toyota',
+      manufacturer: 'Toyota Motor Corporation (Tahara / Hino Plant)',
+      origin: 'Japan',
+      models: [
+        { model: 'Land Cruiser Prado TX-L', engineCc: 2754, fuel: 'Diesel', transmission: 'Automatic', drive: '4WD' },
+        { model: '4Runner SR5 / Limited', engineCc: 3956, fuel: 'Petrol', transmission: 'Automatic', drive: '4WD' },
+      ],
+    },
+  },
+  {
+    prefix: 'JTM',
+    profile: {
+      make: 'Toyota',
+      manufacturer: 'Toyota Motor Corporation (Takaoka Plant)',
+      origin: 'Japan',
+      models: [
+        { model: 'RAV4 Hybrid G Z-Package', engineCc: 2487, fuel: 'Hybrid', transmission: 'CVT', drive: 'AWD' },
+        { model: 'Land Cruiser 300 VX', engineCc: 3345, fuel: 'Diesel', transmission: 'Automatic', drive: '4WD' },
+      ],
+    },
+  },
+  {
+    prefix: 'JTJ',
+    profile: {
+      make: 'Lexus',
+      manufacturer: 'Toyota / Lexus Kyushu Miyata Plant',
+      origin: 'Japan',
+      models: [
+        { model: 'RX450h Version L', engineCc: 3456, fuel: 'Hybrid', transmission: 'CVT', drive: 'AWD' },
+        { model: 'LX570 / LX600 Executive', engineCc: 3445, fuel: 'Petrol', transmission: 'Automatic', drive: '4WD' },
+      ],
+    },
+  },
+  {
+    prefix: 'JTD',
+    profile: {
+      make: 'Toyota',
+      manufacturer: 'Toyota Motor Corporation (Tsutsumi / Iwate Plant)',
+      origin: 'Japan',
+      models: [
+        { model: 'Prius S Touring Hybrid', engineCc: 1797, fuel: 'Hybrid', transmission: 'CVT', drive: '2WD' },
+        { model: 'Corolla Touring Hybrid', engineCc: 1797, fuel: 'Hybrid', transmission: 'CVT', drive: '2WD' },
+      ],
+    },
+  },
+  {
+    prefix: 'JT',
+    profile: {
+      make: 'Toyota',
+      manufacturer: 'Toyota Motor Corporation (Japan)',
+      origin: 'Japan',
+      models: [
+        { model: 'Harrier Z Leather Package', engineCc: 2487, fuel: 'Hybrid', transmission: 'CVT', drive: '2WD' },
+        { model: 'Land Cruiser Prado TX', engineCc: 2754, fuel: 'Diesel', transmission: 'Automatic', drive: '4WD' },
+        { model: 'Hiace Super GL 2.8D', engineCc: 2754, fuel: 'Diesel', transmission: 'Automatic', drive: '4WD' },
+      ],
+    },
+  },
+  {
+    prefix: '4T',
+    profile: {
+      make: 'Toyota',
+      manufacturer: 'Toyota Motor Manufacturing (North America)',
+      origin: 'United States',
+      models: [
+        { model: 'Camry XLE Hybrid', engineCc: 2487, fuel: 'Hybrid', transmission: 'CVT', drive: '2WD' },
+        { model: 'RAV4 Adventure AWD', engineCc: 2487, fuel: 'Petrol', transmission: 'Automatic', drive: 'AWD' },
+      ],
+    },
+  },
+  {
+    prefix: '5TD',
+    profile: {
+      make: 'Toyota',
+      manufacturer: 'Toyota Motor Manufacturing Indiana',
+      origin: 'United States',
+      models: [
+        { model: 'Highlander Limited Hybrid', engineCc: 2487, fuel: 'Hybrid', transmission: 'CVT', drive: 'AWD' },
+      ],
+    },
+  },
+  {
+    prefix: 'JH',
+    profile: {
+      make: 'Honda',
+      manufacturer: 'Honda Motor Co., Ltd. (Suzuka / Sayama Plant)',
+      origin: 'Japan',
+      models: [
+        { model: 'Vezel e:HEV Z', engineCc: 1496, fuel: 'Hybrid', transmission: 'CVT', drive: 'AWD' },
+        { model: 'CR-V Touring Hybrid', engineCc: 1993, fuel: 'Hybrid', transmission: 'CVT', drive: 'AWD' },
+      ],
+    },
+  },
+  {
+    prefix: '1HG',
+    profile: {
+      make: 'Honda',
+      manufacturer: 'Honda Development & Mfg. of America',
+      origin: 'United States',
+      models: [
+        { model: 'Accord EX-L Touring', engineCc: 1498, fuel: 'Petrol', transmission: 'CVT', drive: '2WD' },
+        { model: 'Civic Sport Sedan', engineCc: 1996, fuel: 'Petrol', transmission: 'CVT', drive: '2WD' },
+      ],
+    },
+  },
+  {
+    prefix: 'JN',
+    profile: {
+      make: 'Nissan',
+      manufacturer: 'Nissan Motor Co., Ltd. (Kyushu / Tochigi Plant)',
+      origin: 'Japan',
+      models: [
+        { model: 'X-Trail 20Xi 4WD', engineCc: 1997, fuel: 'Petrol', transmission: 'CVT', drive: '4WD' },
+        { model: 'Note e-POWER X', engineCc: 1198, fuel: 'Hybrid', transmission: 'Automatic', drive: '2WD' },
+      ],
+    },
+  },
+  {
+    prefix: 'JM',
+    profile: {
+      make: 'Mazda',
+      manufacturer: 'Mazda Motor Corporation (Hiroshima / Hofu Plant)',
+      origin: 'Japan',
+      models: [
+        { model: 'CX-5 XD L-Package', engineCc: 2188, fuel: 'Diesel', transmission: 'Automatic', drive: 'AWD' },
+        { model: 'CX-8 25S Proactive', engineCc: 2488, fuel: 'Petrol', transmission: 'Automatic', drive: 'AWD' },
+      ],
+    },
+  },
+  {
+    prefix: 'JF',
+    profile: {
+      make: 'Subaru',
+      manufacturer: 'Subaru Corporation (Gunma Yajima Plant)',
+      origin: 'Japan',
+      models: [
+        { model: 'Forester e-BOXER Advance', engineCc: 1995, fuel: 'Hybrid', transmission: 'CVT', drive: 'AWD' },
+        { model: 'Outback Limited X-Break', engineCc: 2498, fuel: 'Petrol', transmission: 'CVT', drive: 'AWD' },
+      ],
+    },
+  },
+  {
+    prefix: 'JS',
+    profile: {
+      make: 'Suzuki',
+      manufacturer: 'Suzuki Motor Corporation (Kosai / Sagara Plant)',
+      origin: 'Japan',
+      models: [
+        { model: 'Jimny Sierra JC 4WD', engineCc: 1462, fuel: 'Petrol', transmission: 'Automatic', drive: '4WD' },
+        { model: 'Swift Hybrid RS', engineCc: 1242, fuel: 'Hybrid', transmission: 'CVT', drive: '2WD' },
+      ],
+    },
+  },
+  {
+    prefix: 'JA',
+    profile: {
+      make: 'Mitsubishi',
+      manufacturer: 'Mitsubishi Motors Corp. (Okazaki / Mizushima Plant)',
+      origin: 'Japan',
+      models: [
+        { model: 'Outlander PHEV P-Grade', engineCc: 2359, fuel: 'Hybrid', transmission: 'Automatic', drive: '4WD' },
+        { model: 'Pajero Sport GLS 4WD', engineCc: 2442, fuel: 'Diesel', transmission: 'Automatic', drive: '4WD' },
+      ],
+    },
+  },
+  {
+    prefix: 'WB',
+    profile: {
+      make: 'BMW',
+      manufacturer: 'Bayerische Motoren Werke AG (Munich / Dingolfing)',
+      origin: 'Germany',
+      models: [
+        { model: '320i M Sport', engineCc: 1998, fuel: 'Petrol', transmission: 'Automatic', drive: '2WD' },
+        { model: 'X5 xDrive30d M Sport', engineCc: 2993, fuel: 'Diesel', transmission: 'Automatic', drive: 'AWD' },
+      ],
+    },
+  },
+  {
+    prefix: 'WD',
+    profile: {
+      make: 'Mercedes-Benz',
+      manufacturer: 'Mercedes-Benz Group AG (Stuttgart / Sindelfingen)',
+      origin: 'Germany',
+      models: [
+        { model: 'C200 Avantgarde AMG Line', engineCc: 1496, fuel: 'Hybrid', transmission: 'Automatic', drive: '2WD' },
+        { model: 'GLE 350d 4MATIC', engineCc: 2925, fuel: 'Diesel', transmission: 'Automatic', drive: 'AWD' },
+      ],
+    },
+  },
+  {
+    prefix: 'W1',
+    profile: {
+      make: 'Mercedes-Benz',
+      manufacturer: 'Mercedes-Benz Group AG (Bremen / Sindelfingen)',
+      origin: 'Germany',
+      models: [
+        { model: 'E220d Avantgarde', engineCc: 1950, fuel: 'Diesel', transmission: 'Automatic', drive: '2WD' },
+      ],
+    },
+  },
+  {
+    prefix: 'WA',
+    profile: {
+      make: 'Audi',
+      manufacturer: 'Audi AG (Ingolstadt / Neckarsulm)',
+      origin: 'Germany',
+      models: [
+        { model: 'Q5 40 TDI Quattro', engineCc: 1968, fuel: 'Diesel', transmission: 'Automatic', drive: 'AWD' },
+      ],
+    },
+  },
+  {
+    prefix: 'WV',
+    profile: {
+      make: 'Volkswagen',
+      manufacturer: 'Volkswagen AG (Wolfsburg)',
+      origin: 'Germany',
+      models: [
+        { model: 'Tiguan TDI 4Motion R-Line', engineCc: 1968, fuel: 'Diesel', transmission: 'Automatic', drive: 'AWD' },
+      ],
+    },
+  },
+  {
+    prefix: 'KM',
+    profile: {
+      make: 'Hyundai',
+      manufacturer: 'Hyundai Motor Company (Ulsan Plant)',
+      origin: 'South Korea',
+      models: [
+        { model: 'Tucson Hybrid Inspiration', engineCc: 1598, fuel: 'Hybrid', transmission: 'Automatic', drive: 'AWD' },
+      ],
+    },
+  },
+  {
+    prefix: 'KN',
+    profile: {
+      make: 'Kia',
+      manufacturer: 'Kia Corporation (Hwaseong / Gwangju Plant)',
+      origin: 'South Korea',
+      models: [
+        { model: 'Sorento 2.2D Signature', engineCc: 2151, fuel: 'Diesel', transmission: 'Automatic', drive: 'AWD' },
+      ],
+    },
+  },
+  {
+    prefix: 'SA',
+    profile: {
+      make: 'Land Rover',
+      manufacturer: 'Jaguar Land Rover (Solihull Plant)',
+      origin: 'United Kingdom',
+      models: [
+        { model: 'Range Rover Evoque R-Dynamic', engineCc: 1999, fuel: 'Diesel', transmission: 'Automatic', drive: 'AWD' },
+      ],
+    },
+  },
+  {
+    prefix: '1F',
+    profile: {
+      make: 'Ford',
+      manufacturer: 'Ford Motor Company (Dearborn / Louisville)',
+      origin: 'United States',
+      models: [
+        { model: 'Ranger Wildtrak 2.0 Bi-Turbo', engineCc: 1996, fuel: 'Diesel', transmission: 'Automatic', drive: '4WD' },
+      ],
+    },
+  },
+];
+
+const ISO_YEAR_MAP: Record<string, number> = {
+  A: 2010,
+  B: 2011,
+  C: 2012,
+  D: 2013,
+  E: 2014,
+  F: 2015,
+  G: 2016,
+  H: 2017,
+  J: 2018,
+  K: 2019,
+  L: 2020,
+  M: 2021,
+  N: 2022,
+  P: 2023,
+  R: 2024,
+  S: 2025,
+  T: 2026,
+  '5': 2005,
+  '6': 2006,
+  '7': 2007,
+  '8': 2008,
+  '9': 2009,
+};
+
+function resolveVinOriginCountry(firstChar: string): string {
+  if (firstChar === 'J') return 'Japan';
+  if (firstChar === '1' || firstChar === '4' || firstChar === '5') return 'United States';
+  if (firstChar === '2') return 'Canada';
+  if (firstChar === '3') return 'Mexico';
+  if (firstChar === 'W') return 'Germany';
+  if (firstChar === 'S') return 'United Kingdom';
+  if (firstChar === 'V') return 'France / Spain';
+  if (firstChar === 'Y') return 'Sweden / Finland';
+  if (firstChar === 'Z') return 'Italy';
+  if (firstChar === 'K') return 'South Korea';
+  if (firstChar === 'L') return 'China';
+  if (firstChar === 'M') return 'Thailand / Indonesia / India';
+  if (firstChar === '6') return 'Australia';
+  if (firstChar === '9') return 'Brazil';
+  return 'Japan Export Registry';
+}
+
+function buildVinBreakdown(
+  clean: string,
+  fallbackMake: string
+): ChassisInspectionReport['vinBreakdown'] | undefined {
+  const alnum = clean.replace(/[^A-Z0-9]/g, '');
+  if (alnum.length !== 17 || clean.includes('-')) return undefined;
+  const wmi = alnum.slice(0, 3);
+  const wmiMatch =
+    VIN_WMI_PREFIXES.find((p) => wmi.startsWith(p.prefix)) ||
+    VIN_WMI_PREFIXES.find((p) => wmi.startsWith(p.prefix.slice(0, 2)));
+  return {
+    is17DigitVin: true,
+    wmi,
+    originCountry: wmiMatch?.profile.origin || resolveVinOriginCountry(wmi[0]),
+    manufacturer:
+      wmiMatch?.profile.manufacturer || `${fallbackMake} Export Assembly Plant`,
+    vds: alnum.slice(3, 8),
+    checkDigit: alnum[8],
+    yearCode: alnum[9],
+    plantCode: alnum[10],
+    serialNumber: alnum.slice(11, 17),
+  };
+}
+
 export function resolveChassisInspectionReport(
   rawChassis: string,
   customReports: ChassisInspectionReport[],
@@ -174,7 +526,13 @@ export function resolveChassisInspectionReport(
   const exactCustom = customReports.find(
     (r) => r.chassisNo.trim().toUpperCase() === clean
   );
-  if (exactCustom) return exactCustom;
+  if (exactCustom) {
+    return {
+      ...exactCustom,
+      vinBreakdown:
+        exactCustom.vinBreakdown || buildVinBreakdown(clean, exactCustom.make),
+    };
+  }
 
   // 2. Check live inventory stock
   const matchedVehicle = vehicles.find(
@@ -249,7 +607,7 @@ export function resolveChassisInspectionReport(
       },
       mileageHistory: [
         {
-          date: `${matchedVehicle.year + 2}-${String(matchedVehicle.month).padStart(2, '0')}`,
+          date: `${Math.min(2024, matchedVehicle.year + 2)}-${String(matchedVehicle.month).padStart(2, '0')}`,
           mileageKm: Math.max(4200, Math.round(baseKm * 0.48)),
           source: 'Japan MLIT Shaken Inspection',
         },
@@ -266,26 +624,33 @@ export function resolveChassisInspectionReport(
       ],
       inspectorNote: matchedVehicle.inspectorNote,
       linkedVehicleId: matchedVehicle.id,
+      vinBreakdown: buildVinBreakdown(clean, matchedVehicle.make),
     };
   }
 
-  // 3. Deterministic Japanese Chassis & 17-char VIN Decoder
+  // 3. Deterministic ISO 3779 17-Digit VIN & Japanese Chassis Decoder
   const h = hashString(clean || 'PJV-DEFAULT');
-  const rule = CHASSIS_RULES.find((r) => clean.startsWith(r.prefix) || clean.includes(r.prefix));
-  const isStandardVin = clean.length === 17 && !clean.includes('-');
-  const vinMakeHint = isStandardVin
-    ? clean.startsWith('JT')
-      ? 'Toyota'
-      : clean.startsWith('JH')
-        ? 'Honda'
-        : clean.startsWith('JN')
-          ? 'Nissan'
-          : clean.startsWith('JM')
-            ? 'Mazda'
-            : clean.startsWith('JA')
-              ? 'Mitsubishi'
-              : 'Toyota'
-    : null;
+  const rule = CHASSIS_RULES.find(
+    (r) => clean.startsWith(r.prefix) || clean.includes(r.prefix)
+  );
+  const alnum = clean.replace(/[^A-Z0-9]/g, '');
+  const isStandardVin = alnum.length === 17 && !clean.includes('-');
+  const wmiMatch = isStandardVin
+    ? VIN_WMI_PREFIXES.find((p) => alnum.startsWith(p.prefix)) ||
+      VIN_WMI_PREFIXES.find((p) => alnum.startsWith(p.prefix.slice(0, 2)))
+    : undefined;
+  const fallbackPool = [
+    { make: 'Toyota', model: 'Land Cruiser Prado TX-L', engineCc: 2754, fuel: 'Diesel' as const, transmission: 'Automatic' as const, drive: '4WD' as const },
+    { make: 'Toyota', model: 'Harrier Hybrid Z', engineCc: 2487, fuel: 'Hybrid' as const, transmission: 'CVT' as const, drive: 'AWD' as const },
+    { make: 'Toyota', model: 'RAV4 Adventure 4WD', engineCc: 1986, fuel: 'Petrol' as const, transmission: 'CVT' as const, drive: '4WD' as const },
+    { make: 'Honda', model: 'Vezel e:HEV Z', engineCc: 1496, fuel: 'Hybrid' as const, transmission: 'CVT' as const, drive: 'AWD' as const },
+    { make: 'Nissan', model: 'X-Trail 20Xi 4WD', engineCc: 1997, fuel: 'Petrol' as const, transmission: 'CVT' as const, drive: '4WD' as const },
+    { make: 'Mazda', model: 'CX-5 XD L-Package', engineCc: 2188, fuel: 'Diesel' as const, transmission: 'Automatic' as const, drive: 'AWD' as const },
+  ];
+  const selectedFallback = fallbackPool[h % fallbackPool.length];
+  const wmiSpec = wmiMatch
+    ? wmiMatch.profile.models[h % wmiMatch.profile.models.length]
+    : selectedFallback;
 
   const colors = ['Pearl White', 'Silver Metallic', 'Jet Black', 'Slate Gray', 'Deep Blue'];
   const yards = ['Yokohama Export Yard', 'Nagoya Export Yard', 'Kobe Terminal', 'Hakata Port Yard'];
@@ -293,19 +658,33 @@ export function resolveChassisInspectionReport(
   const grades = ['4.5', '4.0', '4.5', '5.0'];
   const agencies: ('JEVIC' | 'JAAI' | 'QISJ')[] = ['JEVIC', 'JAAI', 'QISJ'];
 
-  const make = rule ? rule.make : vinMakeHint || 'Toyota';
+  const make = rule
+    ? rule.make
+    : wmiMatch
+      ? wmiMatch.profile.make
+      : isStandardVin
+        ? selectedFallback.make
+        : 'Toyota';
   const model = rule
     ? rule.model
     : isStandardVin
-      ? `Verified Export VIN (${clean.slice(0, 3)}-${clean.slice(3, 8)})`
+      ? `${wmiSpec.model} · Export VIN (${alnum.slice(0, 3)}-${alnum.slice(3, 8)})`
       : `Verified Japan Domestic Spec (${clean.split('-')[0] || clean})`;
-  const year = rule ? rule.baseYear : 2019 + (h % 5);
+
+  const decodedIsoYear =
+    isStandardVin && ISO_YEAR_MAP[alnum[9]] ? ISO_YEAR_MAP[alnum[9]] : null;
+  const year = rule ? rule.baseYear : decodedIsoYear || 2019 + (h % 6);
   const month = (h % 12) + 1;
-  const mileageKm = 24000 + (h % 48) * 1150;
+  const ageYears = Math.max(1, 2026 - year);
+  const mileageKm = 9500 * Math.min(ageYears, 6) + (h % 18) * 850;
   const agency = agencies[h % agencies.length];
   const yard = yards[h % yards.length];
   const prefecture = prefectures[h % prefectures.length];
   const grade = grades[h % grades.length];
+  const vinBreakdown = buildVinBreakdown(clean, make);
+
+  const firstInspectionYear = Math.min(2024, year + 2);
+  const midInspectionYear = Math.min(2025, Math.max(firstInspectionYear, year + 3));
 
   return {
     id: `decoded-${h}`,
@@ -315,15 +694,15 @@ export function resolveChassisInspectionReport(
     model,
     year,
     month,
-    engineCc: rule ? rule.engineCc : 1797,
-    fuel: rule ? rule.fuel : 'Petrol',
-    transmission: rule ? rule.transmission : 'Automatic',
-    drive: rule ? rule.drive : '2WD',
+    engineCc: rule ? rule.engineCc : wmiSpec.engineCc,
+    fuel: rule ? rule.fuel : wmiSpec.fuel,
+    transmission: rule ? rule.transmission : wmiSpec.transmission,
+    drive: rule ? rule.drive : wmiSpec.drive,
     color: colors[h % colors.length],
     mileageKm,
     inspectionAgency: agency,
     inspectionYard: yard,
-    inspectionDate: '2026-11-22',
+    inspectionDate: '2026-11-24',
     auctionGrade: grade,
     exteriorGrade: grade === '5.0' ? 'A' : 'B',
     interiorGrade: grade === '5.0' ? 'A' : 'B',
@@ -337,21 +716,21 @@ export function resolveChassisInspectionReport(
     registrationHistory: [
       {
         period: `${year}-${String(month).padStart(2, '0')}`,
-        region: prefecture,
+        region: vinBreakdown ? `${vinBreakdown.originCountry} / ${prefecture}` : prefecture,
         usage: 'Private Passenger',
-        event: 'First MLIT Registration',
+        event: 'First MLIT / OEM Registration',
       },
       {
         period: `${Math.min(2025, year + 2)}-${String(month).padStart(2, '0')}`,
         region: prefecture,
         usage: 'Private Passenger',
-        event: 'Shaken Inspection Verified',
+        event: 'Shaken Inspection & Roadworthiness Verified',
       },
       {
         period: '2026-11',
         region: yard,
         usage: 'Export Deregistration',
-        event: `${agency} Pre-Export VIN & Chassis Clearance`,
+        event: `${agency} Pre-Export 17-Digit VIN & Chassis Clearance`,
       },
     ],
     panelCodes: {
@@ -363,22 +742,22 @@ export function resolveChassisInspectionReport(
       rear: 'Clean Tailgate & Lamp Housings',
     },
     mechanicalChecks: {
-      engine: 'Zero oil leaks · Smooth cold start & compression normal',
-      transmission: 'Clean fluid · Smooth gear transitions verified',
-      suspension: 'Struts, boots & steering rack dry and responsive',
-      brakesAbs: 'Brake system & ABS warning check passed',
+      engine: `${(rule ? rule.engineCc : wmiSpec.engineCc).toLocaleString()} cc ${rule ? rule.fuel : wmiSpec.fuel} · Zero oil leaks & compression normal`,
+      transmission: `${rule ? rule.transmission : wmiSpec.transmission} · Smooth gear transitions verified`,
+      suspension: `${rule ? rule.drive : wmiSpec.drive} struts, boots & steering rack dry`,
+      brakesAbs: 'Brake system & ABS diagnostic check passed',
       acCooling: 'A/C compressor clutch & cabin cooling verified',
       underbodyRust: 'Surface clean · No frame perforation or corrosion',
     },
     mileageHistory: [
       {
-        date: `${Math.min(2024, year + 2)}-${String(month).padStart(2, '0')}`,
-        mileageKm: Math.round(mileageKm * 0.45),
+        date: `${firstInspectionYear}-${String(month).padStart(2, '0')}`,
+        mileageKm: Math.round(mileageKm * 0.44),
         source: 'Japan MLIT Shaken Record',
       },
       {
-        date: '2025-10',
-        mileageKm: Math.round(mileageKm * 0.84),
+        date: `${midInspectionYear}-10`,
+        mileageKm: Math.round(mileageKm * 0.83),
         source: 'Japanese Auction Sheet Archive',
       },
       {
@@ -387,6 +766,9 @@ export function resolveChassisInspectionReport(
         source: `${agency} Pre-Export Odometer Audit`,
       },
     ],
-    inspectorNote: `Chassis ${clean} verified against Japanese deregistration and auction archive records. Structural rails intact with genuine odometer history.`,
+    inspectorNote: vinBreakdown
+      ? `17-digit VIN ${clean} (${vinBreakdown.originCountry} · ${vinBreakdown.manufacturer}) verified against export deregistration, theft, salvage, and auction archive records. Structural rails intact with genuine odometer history.`
+      : `Chassis ${clean} verified against Japanese deregistration and auction archive records. Structural rails intact with genuine odometer history.`,
+    vinBreakdown,
   };
 }

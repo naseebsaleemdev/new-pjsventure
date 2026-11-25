@@ -33,15 +33,17 @@ export function ChassisReportPage({
   onNavigate,
 }: ChassisReportPageProps) {
   const [chassisQuery, setChassisQuery] = useState(
-    initialChassis || 'GDJ150W-019482'
+    initialChassis || 'JTMHY7AJ9J4061821'
   );
   const [activeReport, setActiveReport] = useState<ChassisInspectionReport>(() =>
     resolveChassisInspectionReport(
-      initialChassis || 'GDJ150W-019482',
+      initialChassis || 'JTMHY7AJ9J4061821',
       customReports,
       vehicles
     )
   );
+  const [recentReports, setRecentReports] = useState<ChassisInspectionReport[]>([]);
+  const [lookupError, setLookupError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
 
   // Add New Chassis Inspection Report Form State
@@ -85,19 +87,44 @@ export function ChassisReportPage({
     }
   }, [initialChassis, customReports, vehicles]);
 
+  const cleanedInput = chassisQuery.toUpperCase().replace(/\s+/g, '');
+  const alnumLen = cleanedInput.replace(/[^A-Z0-9]/g, '').length;
+  const isJapanFrame = cleanedInput.includes('-');
+  const isReady17Vin = !isJapanFrame && alnumLen === 17;
+
+  const pushRecentReport = (report: ChassisInspectionReport) => {
+    setRecentReports((prev) => [
+      report,
+      ...prev.filter((r) => r.chassisNo.toUpperCase() !== report.chassisNo.toUpperCase()),
+    ].slice(0, 6));
+  };
+
   const handleLookupSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (!chassisQuery.trim()) return;
-    setActiveReport(
-      resolveChassisInspectionReport(chassisQuery, customReports, vehicles)
-    );
+    const cleaned = chassisQuery.toUpperCase().replace(/\s+/g, '');
+    if (!cleaned) {
+      setLookupError('Please enter a 17-digit VIN or Japanese chassis number.');
+      return;
+    }
+    const strippedLen = cleaned.replace(/[^A-Z0-9]/g, '').length;
+    if (!cleaned.includes('-') && strippedLen < 6) {
+      setLookupError('Enter a full 17-character VIN (or a Japanese chassis code like GDJ150W-019482).');
+      return;
+    }
+    setLookupError(null);
+    setChassisQuery(cleaned);
+    const report = resolveChassisInspectionReport(cleaned, customReports, vehicles);
+    setActiveReport(report);
+    pushRecentReport(report);
   };
 
   const handleQuickSelect = (chassis: string) => {
-    setChassisQuery(chassis);
-    setActiveReport(
-      resolveChassisInspectionReport(chassis, customReports, vehicles)
-    );
+    const cleaned = chassis.toUpperCase().replace(/\s+/g, '');
+    setLookupError(null);
+    setChassisQuery(cleaned);
+    const report = resolveChassisInspectionReport(cleaned, customReports, vehicles);
+    setActiveReport(report);
+    pushRecentReport(report);
   };
 
   const handleCreateReport = (e: FormEvent) => {
@@ -561,7 +588,7 @@ export function ChassisReportPage({
         </section>
       )}
 
-      {/* Search Chassis Bar */}
+      {/* Search Chassis / 17-Digit VIN Bar */}
       <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-3">
         <form
           onSubmit={handleLookupSubmit}
@@ -575,24 +602,48 @@ export function ChassisReportPage({
             <input
               type="text"
               value={chassisQuery}
-              onChange={(e) => setChassisQuery(e.target.value)}
-              placeholder="Enter 17-char VIN or Japanese Chassis No. (e.g. GDJ150W-019482, TRH200-0218491, JTMHY7AJ9J4061821)..."
-              className="w-full pl-10 pr-4 py-2.5 text-sm font-mono bg-[#F8F9FA] border border-slate-300 rounded-lg focus:outline-none focus:border-[#B91C1C]"
+              onChange={(e) => {
+                setChassisQuery(e.target.value.toUpperCase());
+                if (lookupError) setLookupError(null);
+              }}
+              maxLength={24}
+              placeholder="Enter any 17-digit VIN (e.g. JTMHY7AJ9J4061821) or Japan Chassis No. (e.g. GDJ150W-019482)..."
+              className="w-full pl-10 pr-36 py-2.5 text-sm font-mono uppercase bg-[#F8F9FA] border border-slate-300 rounded-lg focus:outline-none focus:border-[#B91C1C]"
             />
+            <span
+              className={`absolute right-2.5 top-1/2 -translate-y-1/2 px-2 py-0.5 text-[11px] font-mono font-semibold rounded border ${
+                isReady17Vin
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                  : isJapanFrame
+                    ? 'bg-slate-100 text-slate-700 border-slate-200'
+                    : 'bg-amber-50 text-amber-800 border-amber-200'
+              }`}
+            >
+              {isJapanFrame
+                ? 'JP Frame Code'
+                : `${alnumLen} / 17 VIN`}
+            </span>
           </div>
           <button
             type="submit"
             className="px-6 py-2.5 text-xs font-semibold text-white bg-[#B91C1C] hover:bg-[#991B1B] rounded-lg transition-colors whitespace-nowrap cursor-pointer"
           >
-            Run VIN &amp; Chassis Report
+            Generate VIN Report
           </button>
         </form>
 
+        {lookupError && (
+          <p className="text-xs font-medium text-[#B91C1C]">{lookupError}</p>
+        )}
+
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
-          <span>Quick Verify:</span>
+          <span>Try 17-Digit VIN / Chassis:</span>
           {[
+            'JTMHY7AJ9J4061821',
+            'JTEBU5JR5M5884120',
+            'WBA8E9G57HNU12345',
             ...customReports.map((r) => r.chassisNo),
-            ...vehicles.slice(0, 4).map((v) => v.chassisCode),
+            ...vehicles.slice(0, 2).map((v) => v.chassisCode),
           ]
             .filter((val, i, arr) => arr.indexOf(val) === i)
             .slice(0, 6)
@@ -611,6 +662,26 @@ export function ChassisReportPage({
               </button>
             ))}
         </div>
+
+        {recentReports.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 text-[11px] text-slate-500">
+            <span className="font-semibold text-slate-700">Recent Generated:</span>
+            {recentReports.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => handleQuickSelect(item.chassisNo)}
+                className={`px-2 py-0.5 font-mono rounded border cursor-pointer transition-colors ${
+                  activeReport.chassisNo.toUpperCase() === item.chassisNo.toUpperCase()
+                    ? 'bg-[#B91C1C] text-white border-[#B91C1C]'
+                    : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400'
+                }`}
+              >
+                {item.chassisNo} ({item.year} {item.make})
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Full Printable Japanese Pre-Export Inspection Certificate */}
@@ -685,6 +756,79 @@ export function ChassisReportPage({
               </dd>
             </div>
           </dl>
+
+          {/* 17-Digit ISO VIN Structural Breakdown (when 17-char VIN is checked) */}
+          {activeReport.vinBreakdown && (
+            <section
+              aria-label="17-Digit VIN Decoder Breakdown"
+              className="border border-slate-200 rounded-xl p-4 bg-white space-y-3"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                <h3 className="font-display text-sm font-bold text-slate-950">
+                  17-Digit ISO VIN Structure Breakdown
+                </h3>
+                <span className="font-mono text-[11px] text-slate-500">
+                  Origin: {activeReport.vinBreakdown.originCountry} · {activeReport.vinBreakdown.manufacturer}
+                </span>
+              </div>
+              <dl className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
+                <div className="p-2.5 bg-[#F8F9FA] border border-slate-200 rounded-lg">
+                  <dt className="text-[11px] text-slate-500">WMI (Chars 1–3)</dt>
+                  <dd className="font-mono font-bold text-slate-950 mt-0.5">
+                    {activeReport.vinBreakdown.wmi}
+                  </dd>
+                  <span className="text-[10px] text-slate-500 block mt-0.5">
+                    {activeReport.vinBreakdown.originCountry}
+                  </span>
+                </div>
+                <div className="p-2.5 bg-[#F8F9FA] border border-slate-200 rounded-lg">
+                  <dt className="text-[11px] text-slate-500">VDS (Chars 4–8)</dt>
+                  <dd className="font-mono font-bold text-slate-950 mt-0.5">
+                    {activeReport.vinBreakdown.vds}
+                  </dd>
+                  <span className="text-[10px] text-slate-500 block mt-0.5">
+                    Vehicle Descriptor
+                  </span>
+                </div>
+                <div className="p-2.5 bg-[#F8F9FA] border border-slate-200 rounded-lg">
+                  <dt className="text-[11px] text-slate-500">Check Digit (9)</dt>
+                  <dd className="font-mono font-bold text-emerald-800 mt-0.5">
+                    {activeReport.vinBreakdown.checkDigit} (Verified)
+                  </dd>
+                  <span className="text-[10px] text-slate-500 block mt-0.5">
+                    ISO 3779 Position 9
+                  </span>
+                </div>
+                <div className="p-2.5 bg-[#F8F9FA] border border-slate-200 rounded-lg">
+                  <dt className="text-[11px] text-slate-500">Model Year (10)</dt>
+                  <dd className="font-mono font-bold text-slate-950 mt-0.5">
+                    {activeReport.vinBreakdown.yearCode} → {activeReport.year}
+                  </dd>
+                  <span className="text-[10px] text-slate-500 block mt-0.5">
+                    Model Year Code
+                  </span>
+                </div>
+                <div className="p-2.5 bg-[#F8F9FA] border border-slate-200 rounded-lg">
+                  <dt className="text-[11px] text-slate-500">Assembly Plant (11)</dt>
+                  <dd className="font-mono font-bold text-slate-950 mt-0.5">
+                    Plant {activeReport.vinBreakdown.plantCode}
+                  </dd>
+                  <span className="text-[10px] text-slate-500 block mt-0.5">
+                    Factory Code
+                  </span>
+                </div>
+                <div className="p-2.5 bg-[#F8F9FA] border border-slate-200 rounded-lg">
+                  <dt className="text-[11px] text-slate-500">Serial (12–17)</dt>
+                  <dd className="font-mono font-bold text-[#B91C1C] mt-0.5">
+                    {activeReport.vinBreakdown.serialNumber}
+                  </dd>
+                  <span className="text-[10px] text-slate-500 block mt-0.5">
+                    Production Sequence
+                  </span>
+                </div>
+              </dl>
+            </section>
+          )}
 
           {/* 6-Check VIN History Summary Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
