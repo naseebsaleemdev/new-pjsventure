@@ -236,6 +236,7 @@ export function UsedCarsPage({
             >
               <option value="All">All Fuels</option>
               <option value="Petrol">Petrol</option>
+              <option value="Gasoline">Gasoline</option>
               <option value="Diesel">Diesel</option>
               <option value="Hybrid">Hybrid</option>
             </select>

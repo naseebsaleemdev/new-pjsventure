@@ -424,6 +424,7 @@ export function ChassisReportPage({
                   className="px-1.5 py-2 bg-[#F8F9FA] border border-slate-300 rounded-lg"
                 >
                   <option value="Petrol">Petrol</option>
+                  <option value="Gasoline">Gasoline</option>
                   <option value="Hybrid">Hybrid</option>
                   <option value="Diesel">Diesel</option>
                 </select>

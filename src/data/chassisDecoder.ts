@@ -122,7 +122,7 @@ interface ChassisDecodeRule {
   make: string;
   model: string;
   engineCc: number;
-  fuel: 'Petrol' | 'Diesel' | 'Hybrid';
+  fuel: 'Petrol' | 'Gasoline' | 'Diesel' | 'Hybrid';
   transmission: 'Automatic' | 'CVT' | 'Manual';
   drive: '4WD' | '2WD' | 'AWD';
   baseYear: number;
@@ -170,7 +170,7 @@ interface VinWmiProfile {
   models: {
     model: string;
     engineCc: number;
-    fuel: 'Petrol' | 'Diesel' | 'Hybrid';
+    fuel: 'Petrol' | 'Gasoline' | 'Diesel' | 'Hybrid';
     transmission: 'Automatic' | 'CVT' | 'Manual';
     drive: '4WD' | '2WD' | 'AWD';
   }[];

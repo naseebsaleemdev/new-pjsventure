@@ -2,7 +2,6 @@ import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import {
   Car,
   CheckCircle2,
-  ClipboardCheck,
   Copy,
   Edit3,
   ExternalLink,
@@ -25,7 +24,6 @@ import {
   BlogCategory,
   BlogPost,
   BodyType,
-  ChassisInspectionReport,
   PortalQuery,
   QueryStatus,
   QueryType,
@@ -41,103 +39,54 @@ interface AdminPortalPageProps {
     | 'queries'
     | 'add-car'
     | 'inventory'
-    | 'chassis-reports'
     | 'blog-posts'
     | 'users';
   vehicles: Vehicle[];
   queries: PortalQuery[];
-  chassisReports: ChassisInspectionReport[];
   blogPosts: BlogPost[];
   onAddVehicle: (vehicle: Vehicle) => void;
   onUpdateVehicle: (vehicle: Vehicle) => void;
   onDeleteVehicle: (vehicleId: string) => void;
+  onBulkDeleteVehicles: (vehicleIds: string[]) => void;
+  onClearAllVehicles: () => void;
   onUpdateQueryStatus: (queryId: string, status: QueryStatus, adminNote?: string) => void;
   onDeleteQuery: (queryId: string) => void;
-  onAddChassisReport: (report: ChassisInspectionReport) => void;
-  onDeleteChassisReport: (reportId: string) => void;
-  onViewChassisReport: (chassisNo: string) => void;
+  onClearAllQueries: () => void;
   onAddBlogPost: (post: BlogPost) => void;
   onUpdateBlogPost: (post: BlogPost) => void;
   onDeleteBlogPost: (postId: string) => void;
+  onClearAllBlogPosts: () => void;
   onViewBlogPost: (post: BlogPost) => void;
   onViewVehiclePage: (vehicle: Vehicle) => void;
   onBackToStorefront: () => void;
 }
 
-const PRESET_GALLERY = [
-  {
-    label: 'Toyota Land Cruiser Prado',
-    url: '/src/assets/images/car_land_cruiser_prado_1795543166418.jpg',
-  },
-  {
-    label: 'Toyota Harrier Hybrid',
-    url: '/src/assets/images/car_harrier_hybrid_1795543168079.jpg',
-  },
-  {
-    label: 'Toyota Hilux 4WD Pickup',
-    url: '/src/assets/images/car_hilux_pickup_1795543167787.jpg',
-  },
-  {
-    label: 'Toyota Alphard Executive',
-    url: '/src/assets/images/car_alphard_van_1795543167860.jpg',
-  },
-  {
-    label: 'Honda Vezel e:HEV',
-    url: '/src/assets/images/car_vezel_hybrid_1795543168788.jpg',
-  },
-  {
-    label: 'Toyota Hiace Van',
-    url: '/src/assets/images/car_hiace_commuter_1795543168720.jpg',
-  },
-  {
-    label: 'Nissan X-Trail SUV',
-    url: '/src/assets/images/car_xtrail_suv_1795543563352.jpg',
-  },
-  {
-    label: 'Toyota Prius Sedan',
-    url: '/src/assets/images/car_prius_sedan_1795543563062.jpg',
-  },
-  {
-    label: 'Toyota Vitz Hatchback',
-    url: '/src/assets/images/car_vitz_hatchback_1795543563207.jpg',
-  },
-  {
-    label: 'Mazda CX-5 Diesel',
-    url: '/src/assets/images/car_cx5_diesel_1795543563999.jpg',
-  },
-  {
-    label: 'Mitsubishi Pajero 4WD',
-    url: '/src/assets/images/car_pajero_sport_1795543564001.jpg',
-  },
-  {
-    label: 'Isuzu Elf Flatbed Truck',
-    url: '/src/assets/images/car_isuzu_truck_1795543564578.jpg',
-  },
-];
+const DEFAULT_FALLBACK_VEHICLE_IMAGE =
+  '/src/assets/images/car_land_cruiser_prado_1795543166418.jpg';
 
 export function AdminPortalPage({
   initialTab = 'queries',
   vehicles,
   queries,
-  chassisReports,
   blogPosts,
   onAddVehicle,
   onUpdateVehicle,
   onDeleteVehicle,
+  onBulkDeleteVehicles,
+  onClearAllVehicles,
   onUpdateQueryStatus,
   onDeleteQuery,
-  onAddChassisReport,
-  onDeleteChassisReport,
-  onViewChassisReport,
+  onClearAllQueries,
   onAddBlogPost,
   onUpdateBlogPost,
   onDeleteBlogPost,
+  onClearAllBlogPosts,
   onViewBlogPost,
   onViewVehiclePage,
   onBackToStorefront,
 }: AdminPortalPageProps) {
   const [activeTab, setActiveTab] = useState<
-    'queries' | 'add-car' | 'inventory' | 'chassis-reports' | 'blog-posts' | 'users'
+    'queries' | 'add-car' | 'inventory' | 'blog-posts' | 'users'
   >(initialTab);
 
   // Staff Authentication & User Details State (Bearer token held strictly in React memory)
@@ -194,22 +143,6 @@ export function AdminPortalPage({
   const [blogNotice, setBlogNotice] = useState<string | null>(null);
   const [blogSearch, setBlogSearch] = useState('');
 
-  // Add Chassis Report State
-  const [crChassis, setCrChassis] = useState('');
-  const [crMake, setCrMake] = useState('Toyota');
-  const [crModel, setCrModel] = useState('');
-  const [crYear, setCrYear] = useState(2021);
-  const [crMileage, setCrMileage] = useState(41200);
-  const [crEngineCc, setCrEngineCc] = useState(1797);
-  const [crFuel, setCrFuel] = useState<ChassisInspectionReport['fuel']>('Hybrid');
-  const [crAgency, setCrAgency] =
-    useState<ChassisInspectionReport['inspectionAgency']>('JEVIC');
-  const [crGrade, setCrGrade] = useState('4.5');
-  const [crNote, setCrNote] = useState(
-    'Verified non-accident Japan vehicle with genuine odometer and passed radiation check.'
-  );
-  const [crNotice, setCrNotice] = useState<string | null>(null);
-
   // Queries Inbox State
   const [queryFilterType, setQueryFilterType] = useState<'All' | QueryType>('All');
   const [queryFilterStatus, setQueryFilterStatus] = useState<'All' | QueryStatus>('All');
@@ -232,7 +165,7 @@ export function AdminPortalPage({
   const [bodyType, setBodyType] = useState<Exclude<BodyType, 'All'>>('SUV');
   const [chassisCode, setChassisCode] = useState('');
   const [engineCc, setEngineCc] = useState(1998);
-  const [fuel, setFuel] = useState<Vehicle['fuel']>('Hybrid');
+  const [fuel, setFuel] = useState<Vehicle['fuel']>('Gasoline');
   const [transmission, setTransmission] = useState<Vehicle['transmission']>('Automatic');
   const [drive, setDrive] = useState<Vehicle['drive']>('4WD');
   const [steering, setSteering] = useState<SteeringSide>('RHD');
@@ -248,12 +181,11 @@ export function AdminPortalPage({
   const [fobUsd, setFobUsd] = useState(21500);
   const [m3Volume, setM3Volume] = useState(14.5);
   const [stockLocation, setStockLocation] = useState<StockLocationType>('Japan Yard');
+  const [yardAvailability, setYardAvailability] = useState<'Ready to Ship' | 'New Arrival'>('New Arrival');
   const [portBalancePort, setPortBalancePort] = useState('Mombasa');
   const [depositUsd, setDepositUsd] = useState(5000);
   const [portBalanceUsd, setPortBalanceUsd] = useState(18500);
-  const [galleryImages, setGalleryImages] = useState<string[]>([
-    PRESET_GALLERY[0].url,
-  ]);
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [urlInput, setUrlInput] = useState('');
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [featuresText, setFeaturesText] = useState(
@@ -263,6 +195,24 @@ export function AdminPortalPage({
     'Verified auction sheet and clean undercarriage. Ready for Ro-Ro or container loading.'
   );
   const [addedBanner, setAddedBanner] = useState<Vehicle | null>(null);
+  const [saveToast, setSaveToast] = useState<Vehicle | null>(null);
+  const [actionToast, setActionToast] = useState<string | null>(null);
+  const [selectedVehicleIds, setSelectedVehicleIds] = useState<string[]>([]);
+  const [confirmClearStock, setConfirmClearStock] = useState(false);
+  const [confirmClearQueries, setConfirmClearQueries] = useState(false);
+  const [confirmClearBlogs, setConfirmClearBlogs] = useState(false);
+
+  useEffect(() => {
+    if (!saveToast) return;
+    const timer = window.setTimeout(() => setSaveToast(null), 8000);
+    return () => window.clearTimeout(timer);
+  }, [saveToast]);
+
+  useEffect(() => {
+    if (!actionToast) return;
+    const timer = window.setTimeout(() => setActionToast(null), 5000);
+    return () => window.clearTimeout(timer);
+  }, [actionToast]);
 
   const filteredQueries = queries.filter((q) => {
     if (queryFilterType !== 'All' && q.type !== queryFilterType) return false;
@@ -673,7 +623,7 @@ export function AdminPortalPage({
     if (!make.trim() || !model.trim() || !chassisCode.trim()) return;
 
     const finalGallery =
-      galleryImages.length > 0 ? galleryImages : [PRESET_GALLERY[0].url];
+      galleryImages.length > 0 ? galleryImages : [DEFAULT_FALLBACK_VEHICLE_IMAGE];
 
     const newVehicle: Vehicle = {
       id: `pjv-${make.toLowerCase().replace(/[^a-z0-9]/g, '')}-${Date.now()}`,
@@ -716,15 +666,18 @@ export function AdminPortalPage({
         .map((f) => f.trim())
         .filter(Boolean),
       inspectorNote: inspectorNote.trim(),
-      availability: stockLocation === 'Japan Yard' ? 'New Arrival' : 'Port Balance',
+      availability: stockLocation === 'Japan Yard' ? yardAvailability : 'Port Balance',
     };
 
     onAddVehicle(newVehicle);
     setAddedBanner(newVehicle);
+    setSaveToast(newVehicle);
     setModel('');
     setTrim('');
     setChassisCode('');
+    setGalleryImages([]);
     setStockNo(`PJV-${84500 + vehicles.length + 2}`);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const statusTextColor = (status: QueryStatus) => {
@@ -926,6 +879,81 @@ export function AdminPortalPage({
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6">
+      {/* Floating Save Notification Toast */}
+      {saveToast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed top-5 right-5 z-50 max-w-sm w-full bg-[#0F172A] text-white border border-emerald-500/60 rounded-xl shadow-xl p-4 flex items-start gap-3"
+        >
+          <CheckCircle2
+            className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5"
+            aria-hidden="true"
+          />
+          <div className="flex-1 min-w-0 text-xs space-y-1">
+            <p className="font-mono font-bold text-emerald-300 uppercase tracking-wide">
+              Car Saved &amp; Published
+            </p>
+            <p className="font-semibold text-white truncate">
+              {saveToast.year} {saveToast.make} {saveToast.model}
+            </p>
+            <p className="text-slate-300 font-mono text-[11px]">
+              {saveToast.stockNo} ·{' '}
+              {saveToast.availability === 'Port Balance'
+                ? 'Port Balance (/port-balance)'
+                : 'Japan Yard (/used-cars)'}
+            </p>
+            <div className="pt-1.5 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onViewVehiclePage(saveToast)}
+                className="px-2.5 py-1 text-[11px] font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded cursor-pointer"
+              >
+                Open Car Page
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('inventory');
+                  setSaveToast(null);
+                }}
+                className="px-2.5 py-1 text-[11px] font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 rounded cursor-pointer"
+              >
+                Manage Stock
+              </button>
+            </div>
+          </div>
+          <button
+            type="button"
+            aria-label="Dismiss notification"
+            onClick={() => setSaveToast(null)}
+            className="text-slate-400 hover:text-white p-0.5 cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Generic Action Notification Toast */}
+      {actionToast && !saveToast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed top-5 right-5 z-50 max-w-sm w-full bg-[#0F172A] text-white border border-slate-700 rounded-xl shadow-xl p-4 flex items-center gap-3 text-xs"
+        >
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" aria-hidden="true" />
+          <span className="flex-1 font-medium">{actionToast}</span>
+          <button
+            type="button"
+            aria-label="Dismiss message"
+            onClick={() => setActionToast(null)}
+            className="text-slate-400 hover:text-white p-0.5 cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Admin Breadcrumb & Top Bar */}
       <div className="bg-white border border-slate-200 rounded-xl px-5 py-4 flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
@@ -937,11 +965,9 @@ export function AdminPortalPage({
                 ? 'Add New Vehicle'
                 : activeTab === 'inventory'
                   ? 'Manage Stock'
-                  : activeTab === 'chassis-reports'
-                    ? 'VIN & Chassis Reports'
-                    : activeTab === 'blog-posts'
-                      ? 'WordPress-Style Blog Manager'
-                      : 'Staff User Details'}
+                  : activeTab === 'blog-posts'
+                    ? 'WordPress-Style Blog Manager'
+                    : 'Staff User Details'}
           </p>
           <h1 className="font-display text-xl font-bold text-slate-950 mt-0.5">
             Pjs Venture Export Operations Console
@@ -1041,24 +1067,6 @@ export function AdminPortalPage({
               </span>
               <span className="font-mono text-xs tabular-nums">
                 {vehicles.length}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('chassis-reports')}
-              className={`w-full px-3 py-2.5 rounded-lg flex items-center justify-between text-left transition-colors cursor-pointer ${
-                activeTab === 'chassis-reports'
-                  ? 'bg-red-50 text-[#B91C1C] font-semibold'
-                  : 'text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <ClipboardCheck className="w-4 h-4" aria-hidden="true" />
-                <span>VIN &amp; Chassis Reports</span>
-              </span>
-              <span className="font-mono text-xs tabular-nums">
-                {chassisReports.length}
               </span>
             </button>
 
@@ -1177,6 +1185,42 @@ export function AdminPortalPage({
                     <option value="Proforma Sent">Proforma Sent</option>
                     <option value="Completed">Completed</option>
                   </select>
+
+                  {queries.length > 0 && (
+                    confirmClearQueries ? (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const count = queries.length;
+                            onClearAllQueries();
+                            setSelectedQueryId(null);
+                            setConfirmClearQueries(false);
+                            setActionToast(`Removed all ${count} form queries.`);
+                          }}
+                          className="px-3 py-2 text-xs font-semibold text-white bg-[#B91C1C] hover:bg-[#991B1B] rounded-lg cursor-pointer"
+                        >
+                          Confirm Clear All ({queries.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmClearQueries(false)}
+                          className="px-2.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setConfirmClearQueries(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-[#B91C1C] bg-red-50 border border-red-200 hover:bg-red-100 rounded-lg cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+                        <span>Clear All Queries</span>
+                      </button>
+                    )
+                  )}
                 </div>
               </div>
 
@@ -1201,6 +1245,7 @@ export function AdminPortalPage({
                             <th className="py-3 px-4 font-semibold">Buyer</th>
                             <th className="py-3 px-4 font-semibold">Subject / Port</th>
                             <th className="py-3 px-4 font-semibold text-right">Status</th>
+                            <th className="py-3 px-4 font-semibold text-right">Action</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200">
@@ -1234,7 +1279,7 @@ export function AdminPortalPage({
                                   </span>
                                 </td>
                                 <td className="py-3 px-4">
-                                  <span className="block text-slate-800 font-medium truncate max-w-[190px]">
+                                  <span className="block text-slate-800 font-medium truncate max-w-[170px]">
                                     {q.subject}
                                   </span>
                                   <span className="text-[11px] text-slate-500">
@@ -1245,6 +1290,21 @@ export function AdminPortalPage({
                                   <span className={statusTextColor(q.status)}>
                                     {q.status}
                                   </span>
+                                </td>
+                                <td className="py-3 px-4 text-right whitespace-nowrap">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onDeleteQuery(q.id);
+                                      setActionToast(`Deleted query ${q.referenceId}.`);
+                                    }}
+                                    aria-label={`Delete query ${q.referenceId}`}
+                                    className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-[#B91C1C] bg-red-50 hover:bg-red-100 rounded cursor-pointer"
+                                  >
+                                    <Trash2 className="w-3 h-3" aria-hidden="true" />
+                                    <span>Delete</span>
+                                  </button>
                                 </td>
                               </tr>
                             );
@@ -1270,11 +1330,15 @@ export function AdminPortalPage({
                         </div>
                         <button
                           type="button"
-                          onClick={() => onDeleteQuery(selectedQuery.id)}
-                          aria-label="Delete query"
-                          className="p-1.5 text-slate-400 hover:text-[#B91C1C] rounded cursor-pointer"
+                          onClick={() => {
+                            const ref = selectedQuery.referenceId;
+                            onDeleteQuery(selectedQuery.id);
+                            setActionToast(`Deleted query ${ref}.`);
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-[#B91C1C] bg-red-50 border border-red-200 hover:bg-red-100 rounded-lg cursor-pointer shrink-0"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+                          <span>Delete</span>
                         </button>
                       </div>
 
@@ -1409,26 +1473,45 @@ export function AdminPortalPage({
               </div>
 
               {addedBanner && (
-                <div className="p-4 bg-[#F8F9FA] border border-slate-200 rounded-xl flex flex-wrap items-center justify-between gap-4">
+                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <CheckCircle2 className="w-5 h-5 text-emerald-700 shrink-0" aria-hidden="true" />
                     <div>
                       <p className="font-mono text-xs font-semibold text-emerald-800">
-                        {addedBanner.stockNo} — Published to Live Stock
+                        {addedBanner.stockNo} — Saved &amp; Published to{' '}
+                        {addedBanner.availability === 'Port Balance'
+                          ? 'Port Balance Inventory'
+                          : 'Live Japan Yard Stock'}
                       </p>
                       <p className="text-sm font-bold text-slate-950">
                         {addedBanner.year} {addedBanner.make} {addedBanner.model} ({addedBanner.trim})
                       </p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => onViewVehiclePage(addedBanner)}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg cursor-pointer"
-                  >
-                    <span>Open Vehicle Single Page</span>
-                    <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onViewVehiclePage(addedBanner)}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg cursor-pointer"
+                    >
+                      <span>Open Vehicle Single Page</span>
+                      <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('inventory')}
+                      className="px-3 py-2 text-xs font-semibold text-slate-800 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg cursor-pointer"
+                    >
+                      View in Manage Stock
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAddedBanner(null)}
+                      className="px-2.5 py-2 text-xs text-slate-500 hover:text-slate-900 underline cursor-pointer"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -1594,9 +1677,10 @@ export function AdminPortalPage({
                     onChange={(e) => setFuel(e.target.value as Vehicle['fuel'])}
                     className="w-full px-3 py-2 text-sm bg-[#F8F9FA] border border-slate-300 rounded-lg"
                   >
+                    <option value="Gasoline">Gasoline</option>
+                    <option value="Petrol">Petrol</option>
                     <option value="Hybrid">Hybrid</option>
                     <option value="Diesel">Diesel</option>
-                    <option value="Petrol">Petrol</option>
                   </select>
                 </div>
 
@@ -1798,12 +1882,23 @@ export function AdminPortalPage({
                   </div>
                 </div>
 
-                {/* Stock Location & Port Balance Payment Configuration */}
+                {/* Stock Type & Port Balance Configuration */}
                 <div className="sm:col-span-2 lg:col-span-3 p-4 bg-[#F8F9FA] border border-slate-200 rounded-xl space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-slate-900">
+                      Stock Type &amp; Dispatch Allocation
+                    </span>
+                    <span className="text-[11px] font-medium text-slate-500">
+                      {stockLocation === 'Japan Yard'
+                        ? 'Publishes to Regular Stock (/used-cars)'
+                        : 'Publishes exclusively to Port Balance (/port-balance)'}
+                    </span>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                    <div>
+                    <div className={stockLocation === 'Japan Yard' ? 'md:col-span-2' : ''}>
                       <label htmlFor="add-stock-loc" className="block text-xs font-semibold text-slate-700 mb-1">
-                        Stock Type / Port Balance
+                        Stock Type
                       </label>
                       <select
                         id="add-stock-loc"
@@ -1813,13 +1908,32 @@ export function AdminPortalPage({
                         }
                         className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg"
                       >
-                        <option value="Japan Yard">Japan Yard Stock</option>
-                        <option value="Port Balance (At Port)">Port Balance (At Port)</option>
-                        <option value="Port Balance (In Transit)">Port Balance (In Transit)</option>
+                        <option value="Japan Yard">Japan Yard Stock (Regular Export)</option>
+                        <option value="Port Balance (At Port)">Port Balance — Arrived at Port</option>
+                        <option value="Port Balance (In Transit)">Port Balance — In Transit (On Vessel)</option>
                       </select>
                     </div>
 
-                    {stockLocation !== 'Japan Yard' && (
+                    {stockLocation === 'Japan Yard' ? (
+                      <div className="md:col-span-2">
+                        <label htmlFor="add-yard-availability" className="block text-xs font-semibold text-slate-700 mb-1">
+                          Yard Availability Badge
+                        </label>
+                        <select
+                          id="add-yard-availability"
+                          value={yardAvailability}
+                          onChange={(e) =>
+                            setYardAvailability(
+                              e.target.value as 'Ready to Ship' | 'New Arrival'
+                            )
+                          }
+                          className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg"
+                        >
+                          <option value="New Arrival">New Arrival</option>
+                          <option value="Ready to Ship">Ready to Ship</option>
+                        </select>
+                      </div>
+                    ) : (
                       <>
                         <div>
                           <label htmlFor="add-pb-port" className="block text-xs font-semibold text-slate-700 mb-1">
@@ -1873,7 +1987,7 @@ export function AdminPortalPage({
                         Vehicle Gallery Photos ({galleryImages.length} added)
                       </h3>
                       <p className="text-xs text-slate-500">
-                        Upload multiple photos or add presets/URLs. First photo is used as the primary catalog cover.
+                        Upload multiple photos or append image URLs. First photo is used as the primary catalog cover.
                       </p>
                     </div>
                   </div>
@@ -1924,8 +2038,8 @@ export function AdminPortalPage({
                     </div>
                   )}
 
-                  {/* Multi-Upload, Preset Adder, and URL Adder */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t border-slate-200">
+                  {/* Multi-Upload and URL Adder */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-200">
                     <div>
                       <label
                         htmlFor="add-upload-photo"
@@ -1941,32 +2055,6 @@ export function AdminPortalPage({
                         onChange={handleImageFileUpload}
                         className="w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-slate-900 file:text-white hover:file:bg-slate-800 cursor-pointer"
                       />
-                    </div>
-
-                    <div>
-                      <label
-                        htmlFor="add-preset-photo"
-                        className="block text-xs font-semibold text-slate-700 mb-1"
-                      >
-                        Add Yard Photo Preset
-                      </label>
-                      <select
-                        id="add-preset-photo"
-                        value=""
-                        onChange={(e) => {
-                          if (e.target.value) {
-                            setGalleryImages((prev) => [...prev, e.target.value]);
-                          }
-                        }}
-                        className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg"
-                      >
-                        <option value="">+ Select a yard photo to append...</option>
-                        {PRESET_GALLERY.map((g) => (
-                          <option key={g.url} value={g.url}>
-                            {g.label}
-                          </option>
-                        ))}
-                      </select>
                     </div>
 
                     <div>
@@ -2024,13 +2112,21 @@ export function AdminPortalPage({
                   />
                 </div>
 
-                <div className="sm:col-span-2 lg:col-span-3 pt-2">
+                <div className="sm:col-span-2 lg:col-span-3 pt-2 flex flex-wrap items-center gap-4">
                   <button
                     type="submit"
                     className="px-6 py-3 text-sm font-semibold text-white bg-[#B91C1C] hover:bg-[#991B1B] rounded-lg transition-colors cursor-pointer"
                   >
                     Publish Vehicle to Export Stock
                   </button>
+                  {addedBanner && (
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800">
+                      <CheckCircle2 className="w-4 h-4 shrink-0" aria-hidden="true" />
+                      <span>
+                        Saved {addedBanner.year} {addedBanner.make} {addedBanner.model} ({addedBanner.stockNo})
+                      </span>
+                    </span>
+                  )}
                 </div>
               </form>
             </div>
@@ -2077,381 +2173,206 @@ export function AdminPortalPage({
                     ))}
                   </div>
                 </div>
-                <span className="font-mono text-xs text-slate-500 tabular-nums">
-                  {filteredInventory.length} units
-                </span>
-              </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-xs text-slate-500 tabular-nums mr-1">
+                    {filteredInventory.length} units
+                  </span>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="bg-[#F8F9FA] border-b border-slate-200 text-slate-600">
-                      <th className="py-3 px-4 font-semibold">Stock No.</th>
-                      <th className="py-3 px-4 font-semibold">Vehicle</th>
-                      <th className="py-3 px-4 font-semibold">Yard / Grade</th>
-                      <th className="py-3 px-4 font-semibold text-right">FOB (USD)</th>
-                      <th className="py-3 px-4 font-semibold">Status</th>
-                      <th className="py-3 px-4 font-semibold text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    {filteredInventory.map((v) => (
-                      <tr key={v.id} className="hover:bg-slate-50">
-                        <td className="py-3 px-4 font-mono font-semibold text-slate-950 whitespace-nowrap">
-                          {v.stockNo}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className="block font-semibold text-slate-900">
-                            {v.year} {v.make} {v.model}
-                          </span>
-                          <span className="font-mono text-[11px] text-slate-500">
-                            {v.chassisCode} · {v.mileageKm.toLocaleString()} km
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 whitespace-nowrap text-slate-700">
-                          {v.yardPort} · Grade {v.auctionGrade}
-                        </td>
-                        <td className="py-3 px-4 text-right font-mono font-bold text-slate-950 tabular-nums whitespace-nowrap">
-                          ${v.fobUsd.toLocaleString()}
-                        </td>
-                        <td className="py-3 px-4 whitespace-nowrap">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const nextAvailability: Vehicle['availability'] =
-                                v.availability === 'Ready to Ship'
-                                  ? 'New Arrival'
-                                  : v.availability === 'New Arrival'
-                                    ? 'Port Balance'
-                                    : 'Ready to Ship';
-                              onUpdateVehicle({
-                                ...v,
-                                availability: nextAvailability,
-                                stockLocation:
-                                  nextAvailability === 'Port Balance'
-                                    ? v.stockLocation && v.stockLocation !== 'Japan Yard'
-                                      ? v.stockLocation
-                                      : 'Port Balance (At Port)'
-                                    : 'Japan Yard',
-                              });
-                            }}
-                            className="text-xs font-medium text-slate-700 underline underline-offset-2 hover:text-[#B91C1C] cursor-pointer"
-                          >
-                            {v.availability}
-                          </button>
-                        </td>
-                        <td className="py-3 px-4 text-right whitespace-nowrap space-x-2">
-                          <button
-                            type="button"
-                            onClick={() => onViewVehiclePage(v)}
-                            className="px-2.5 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 rounded cursor-pointer"
-                          >
-                            View Page
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => onDeleteVehicle(v.id)}
-                            aria-label={`Remove ${v.stockNo}`}
-                            className="p-1 text-slate-400 hover:text-[#B91C1C] rounded cursor-pointer align-middle"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 4: CHASSIS INSPECTION REPORTS */}
-          {activeTab === 'chassis-reports' && (
-            <div className="space-y-5">
-              <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
-                <div className="pb-3 border-b border-slate-200">
-                  <h2 className="font-display text-lg font-bold text-slate-950">
-                    Publish Chassis Inspection Report
-                  </h2>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Add an official JEVIC / JAAI inspection report for any chassis number so buyers can pull the complete certificate on /chassis-check.
-                  </p>
-                </div>
-
-                {crNotice && (
-                  <div className="p-3 bg-[#F8F9FA] border border-emerald-200 rounded-lg text-xs text-emerald-800 font-semibold flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 shrink-0" aria-hidden="true" />
-                    <span>{crNotice}</span>
-                  </div>
-                )}
-
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    const clean = crChassis.trim().toUpperCase();
-                    if (!clean || !crMake.trim() || !crModel.trim()) return;
-                    const created: ChassisInspectionReport = {
-                      id: `chr-${Date.now()}`,
-                      reportNo: `${crAgency}-2026-${Math.floor(10000 + Math.random() * 89999)}`,
-                      chassisNo: clean,
-                      make: crMake.trim(),
-                      model: crModel.trim(),
-                      year: Number(crYear),
-                      month: 5,
-                      engineCc: Number(crEngineCc),
-                      fuel: crFuel,
-                      transmission: 'Automatic',
-                      drive: '2WD',
-                      color: 'Pearl White',
-                      mileageKm: Number(crMileage),
-                      inspectionAgency: crAgency,
-                      inspectionYard: 'Yokohama Export Yard',
-                      inspectionDate: new Date().toISOString().slice(0, 10),
-                      auctionGrade: crGrade,
-                      exteriorGrade: 'A',
-                      interiorGrade: 'A',
-                      radiationLevel: '0.06 μSv/h (Passed)',
-                      odometerStatus: 'Verified Genuine',
-                      accidentHistory: 'No Structural Frame Damage',
-                      floodStatus: 'No Flood / Water Damage',
-                      panelCodes: {
-                        front: 'A1 (Clean)',
-                        hood: 'Original Paint',
-                        roof: 'Clean',
-                        leftSide: 'Original Paint',
-                        rightSide: 'Clean',
-                        rear: 'Clean',
-                      },
-                      mechanicalChecks: {
-                        engine: `${Number(crEngineCc).toLocaleString()} cc ${crFuel} · Passed`,
-                        transmission: 'Smooth shifting verified',
-                        suspension: 'No leaks detected',
-                        brakesAbs: 'Pads >75% · ABS normal',
-                        acCooling: 'Cooling verified',
-                        underbodyRust: 'Clean rails · Zero frame corrosion',
-                      },
-                      mileageHistory: [
-                        {
-                          date: `${Number(crYear) + 2}-05`,
-                          mileageKm: Math.round(Number(crMileage) * 0.45),
-                          source: 'Japan MLIT Shaken Inspection',
-                        },
-                        {
-                          date: '2025-11',
-                          mileageKm: Math.round(Number(crMileage) * 0.86),
-                          source: 'Japanese Auction Sheet Archive',
-                        },
-                        {
-                          date: new Date().toISOString().slice(0, 7),
-                          mileageKm: Number(crMileage),
-                          source: `${crAgency} Pre-Export Inspection`,
-                        },
-                      ],
-                      inspectorNote: crNote.trim(),
-                    };
-                    onAddChassisReport(created);
-                    setCrNotice(`Published report ${created.reportNo} for ${clean}.`);
-                    setCrChassis('');
-                    setCrModel('');
-                  }}
-                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs"
-                >
-                  <div>
-                    <label htmlFor="adm-cr-chassis" className="block font-semibold text-slate-700 mb-1">
-                      Chassis No. *
-                    </label>
-                    <input
-                      id="adm-cr-chassis"
-                      type="text"
-                      required
-                      value={crChassis}
-                      onChange={(e) => setCrChassis(e.target.value)}
-                      placeholder="e.g. ZVW51-6140293"
-                      className="w-full px-3 py-2 font-mono bg-[#F8F9FA] border border-slate-300 rounded-lg"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="adm-cr-make" className="block font-semibold text-slate-700 mb-1">
-                      Make *
-                    </label>
-                    <input
-                      id="adm-cr-make"
-                      type="text"
-                      required
-                      value={crMake}
-                      onChange={(e) => setCrMake(e.target.value)}
-                      className="w-full px-3 py-2 bg-[#F8F9FA] border border-slate-300 rounded-lg"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="adm-cr-model" className="block font-semibold text-slate-700 mb-1">
-                      Model &amp; Grade *
-                    </label>
-                    <input
-                      id="adm-cr-model"
-                      type="text"
-                      required
-                      value={crModel}
-                      onChange={(e) => setCrModel(e.target.value)}
-                      placeholder="e.g. Prius S Safety Plus"
-                      className="w-full px-3 py-2 bg-[#F8F9FA] border border-slate-300 rounded-lg"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label htmlFor="adm-cr-year" className="block font-semibold text-slate-700 mb-1">
-                        Year
-                      </label>
-                      <input
-                        id="adm-cr-year"
-                        type="number"
-                        value={crYear}
-                        onChange={(e) => setCrYear(Number(e.target.value))}
-                        className="w-full px-2.5 py-2 font-mono bg-[#F8F9FA] border border-slate-300 rounded-lg"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="adm-cr-grade" className="block font-semibold text-slate-700 mb-1">
-                        Grade
-                      </label>
-                      <input
-                        id="adm-cr-grade"
-                        type="text"
-                        value={crGrade}
-                        onChange={(e) => setCrGrade(e.target.value)}
-                        className="w-full px-2.5 py-2 font-mono bg-[#F8F9FA] border border-slate-300 rounded-lg"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label htmlFor="adm-cr-km" className="block font-semibold text-slate-700 mb-1">
-                      Mileage (km)
-                    </label>
-                    <input
-                      id="adm-cr-km"
-                      type="number"
-                      value={crMileage}
-                      onChange={(e) => setCrMileage(Number(e.target.value))}
-                      className="w-full px-3 py-2 font-mono bg-[#F8F9FA] border border-slate-300 rounded-lg"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="adm-cr-cc" className="block font-semibold text-slate-700 mb-1">
-                      Engine (cc)
-                    </label>
-                    <input
-                      id="adm-cr-cc"
-                      type="number"
-                      value={crEngineCc}
-                      onChange={(e) => setCrEngineCc(Number(e.target.value))}
-                      className="w-full px-3 py-2 font-mono bg-[#F8F9FA] border border-slate-300 rounded-lg"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label htmlFor="adm-cr-fuel" className="block font-semibold text-slate-700 mb-1">
-                        Fuel
-                      </label>
-                      <select
-                        id="adm-cr-fuel"
-                        value={crFuel}
-                        onChange={(e) =>
-                          setCrFuel(e.target.value as ChassisInspectionReport['fuel'])
-                        }
-                        className="w-full px-2 py-2 bg-[#F8F9FA] border border-slate-300 rounded-lg"
-                      >
-                        <option value="Petrol">Petrol</option>
-                        <option value="Hybrid">Hybrid</option>
-                        <option value="Diesel">Diesel</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label htmlFor="adm-cr-agency" className="block font-semibold text-slate-700 mb-1">
-                        Agency
-                      </label>
-                      <select
-                        id="adm-cr-agency"
-                        value={crAgency}
-                        onChange={(e) =>
-                          setCrAgency(
-                            e.target.value as ChassisInspectionReport['inspectionAgency']
-                          )
-                        }
-                        className="w-full px-2 py-2 bg-[#F8F9FA] border border-slate-300 rounded-lg"
-                      >
-                        <option value="JEVIC">JEVIC</option>
-                        <option value="JAAI">JAAI</option>
-                        <option value="QISJ">QISJ</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <label htmlFor="adm-cr-note" className="block font-semibold text-slate-700 mb-1">
-                      Inspector Remarks
-                    </label>
-                    <input
-                      id="adm-cr-note"
-                      type="text"
-                      value={crNote}
-                      onChange={(e) => setCrNote(e.target.value)}
-                      className="w-full px-3 py-2 bg-[#F8F9FA] border border-slate-300 rounded-lg"
-                    />
-                  </div>
-
-                  <div className="sm:col-span-2 lg:col-span-4 pt-1">
+                  {selectedVehicleIds.length > 0 && (
                     <button
-                      type="submit"
-                      className="px-5 py-2.5 font-semibold text-white bg-[#B91C1C] hover:bg-[#991B1B] rounded-lg cursor-pointer"
+                      type="button"
+                      onClick={() => {
+                        const count = selectedVehicleIds.length;
+                        onBulkDeleteVehicles(selectedVehicleIds);
+                        setSelectedVehicleIds([]);
+                        setActionToast(`Deleted ${count} selected vehicles.`);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[#B91C1C] hover:bg-[#991B1B] rounded-lg cursor-pointer"
                     >
-                      Save Chassis Inspection Report
+                      <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+                      <span>Delete Selected ({selectedVehicleIds.length})</span>
                     </button>
-                  </div>
-                </form>
+                  )}
+
+                  {vehicles.length > 0 && (
+                    confirmClearStock ? (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const count = vehicles.length;
+                            onClearAllVehicles();
+                            setSelectedVehicleIds([]);
+                            setConfirmClearStock(false);
+                            setActionToast(`Cleared all ${count} vehicles from stock.`);
+                          }}
+                          className="px-3 py-1.5 text-xs font-semibold text-white bg-[#B91C1C] hover:bg-[#991B1B] rounded-lg cursor-pointer"
+                        >
+                          Confirm Clear All ({vehicles.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmClearStock(false)}
+                          className="px-2.5 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setConfirmClearStock(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#B91C1C] bg-red-50 border border-red-200 hover:bg-red-100 rounded-lg cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+                        <span>Clear All Stock</span>
+                      </button>
+                    )
+                  )}
+                </div>
               </div>
 
-              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+              {filteredInventory.length === 0 ? (
+                <div className="p-12 text-center space-y-3">
+                  <p className="font-display text-base font-bold text-slate-900">
+                    {vehicles.length === 0
+                      ? 'Inventory is empty'
+                      : 'No matching vehicles'}
+                  </p>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto">
+                    {vehicles.length === 0
+                      ? 'All sample vehicles have been cleared. Click below to start adding your own live inventory.'
+                      : 'Try clearing your search or location filter to see remaining units.'}
+                  </p>
+                  {vehicles.length === 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('add-car')}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-[#B91C1C] hover:bg-[#991B1B] rounded-lg cursor-pointer"
+                    >
+                      <PlusCircle className="w-3.5 h-3.5" aria-hidden="true" />
+                      <span>Add Your First Vehicle</span>
+                    </button>
+                  )}
+                </div>
+              ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="bg-[#F8F9FA] border-b border-slate-200 text-slate-600">
-                        <th className="py-3 px-4 font-semibold">Report No.</th>
-                        <th className="py-3 px-4 font-semibold">Chassis No.</th>
+                        <th className="py-3 px-4 w-8">
+                          <input
+                            type="checkbox"
+                            aria-label="Select all visible vehicles"
+                            checked={
+                              filteredInventory.length > 0 &&
+                              filteredInventory.every((v) =>
+                                selectedVehicleIds.includes(v.id)
+                              )
+                            }
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedVehicleIds(filteredInventory.map((v) => v.id));
+                              } else {
+                                setSelectedVehicleIds([]);
+                              }
+                            }}
+                            className="rounded border-slate-300 cursor-pointer"
+                          />
+                        </th>
+                        <th className="py-3 px-4 font-semibold">Stock No.</th>
                         <th className="py-3 px-4 font-semibold">Vehicle</th>
-                        <th className="py-3 px-4 font-semibold">Agency / Grade</th>
+                        <th className="py-3 px-4 font-semibold">Yard / Grade</th>
+                        <th className="py-3 px-4 font-semibold text-right">FOB (USD)</th>
+                        <th className="py-3 px-4 font-semibold">Status</th>
                         <th className="py-3 px-4 font-semibold text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200">
-                      {chassisReports.map((rep) => (
-                        <tr key={rep.id} className="hover:bg-slate-50">
-                          <td className="py-3 px-4 font-mono font-semibold text-slate-950 whitespace-nowrap">
-                            {rep.reportNo}
+                      {filteredInventory.map((v) => (
+                        <tr key={v.id} className="hover:bg-slate-50">
+                          <td className="py-3 px-4">
+                            <input
+                              type="checkbox"
+                              aria-label={`Select ${v.stockNo}`}
+                              checked={selectedVehicleIds.includes(v.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedVehicleIds((prev) => [...prev, v.id]);
+                                } else {
+                                  setSelectedVehicleIds((prev) =>
+                                    prev.filter((id) => id !== v.id)
+                                  );
+                                }
+                              }}
+                              className="rounded border-slate-300 cursor-pointer"
+                            />
                           </td>
-                          <td className="py-3 px-4 font-mono font-semibold text-[#B91C1C] whitespace-nowrap">
-                            {rep.chassisNo}
+                          <td className="py-3 px-4 font-mono font-semibold text-slate-950 whitespace-nowrap">
+                            {v.stockNo}
                           </td>
                           <td className="py-3 px-4">
-                            {rep.year} {rep.make} {rep.model}
+                            <span className="block font-semibold text-slate-900">
+                              {v.year} {v.make} {v.model}
+                            </span>
+                            <span className="font-mono text-[11px] text-slate-500">
+                              {v.chassisCode} · {v.mileageKm.toLocaleString()} km
+                            </span>
                           </td>
-                          <td className="py-3 px-4 whitespace-nowrap font-mono">
-                            {rep.inspectionAgency} · Grade {rep.auctionGrade}
+                          <td className="py-3 px-4 whitespace-nowrap text-slate-700">
+                            {v.yardPort} · Grade {v.auctionGrade}
+                          </td>
+                          <td className="py-3 px-4 text-right font-mono font-bold text-slate-950 tabular-nums whitespace-nowrap">
+                            ${v.fobUsd.toLocaleString()}
+                          </td>
+                          <td className="py-3 px-4 whitespace-nowrap">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const nextAvailability: Vehicle['availability'] =
+                                  v.availability === 'Ready to Ship'
+                                    ? 'New Arrival'
+                                    : v.availability === 'New Arrival'
+                                      ? 'Port Balance'
+                                      : 'Ready to Ship';
+                                onUpdateVehicle({
+                                  ...v,
+                                  availability: nextAvailability,
+                                  stockLocation:
+                                    nextAvailability === 'Port Balance'
+                                      ? v.stockLocation && v.stockLocation !== 'Japan Yard'
+                                        ? v.stockLocation
+                                        : 'Port Balance (At Port)'
+                                      : 'Japan Yard',
+                                });
+                              }}
+                              className="text-xs font-medium text-slate-700 underline underline-offset-2 hover:text-[#B91C1C] cursor-pointer"
+                            >
+                              {v.availability}
+                            </button>
                           </td>
                           <td className="py-3 px-4 text-right whitespace-nowrap space-x-2">
                             <button
                               type="button"
-                              onClick={() => onViewChassisReport(rep.chassisNo)}
+                              onClick={() => onViewVehiclePage(v)}
                               className="px-2.5 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 rounded cursor-pointer"
                             >
-                              Open Report
+                              View Page
                             </button>
                             <button
                               type="button"
-                              onClick={() => onDeleteChassisReport(rep.id)}
-                              aria-label={`Delete report ${rep.reportNo}`}
-                              className="p-1 text-slate-400 hover:text-[#B91C1C] rounded cursor-pointer align-middle"
+                              onClick={() => {
+                                onDeleteVehicle(v.id);
+                                setSelectedVehicleIds((prev) =>
+                                  prev.filter((id) => id !== v.id)
+                                );
+                                setActionToast(`Deleted ${v.year} ${v.make} ${v.model} (${v.stockNo}).`);
+                              }}
+                              aria-label={`Remove ${v.stockNo}`}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-[#B91C1C] bg-red-50 hover:bg-red-100 rounded cursor-pointer align-middle"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash2 className="w-3 h-3" aria-hidden="true" />
+                              <span>Delete</span>
                             </button>
                           </td>
                         </tr>
@@ -2459,11 +2380,11 @@ export function AdminPortalPage({
                     </tbody>
                   </table>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
-          {/* TAB 5: WORDPRESS-STYLE BLOG CMS */}
+          {/* TAB 4: WORDPRESS-STYLE BLOG CMS */}
           {activeTab === 'blog-posts' && (
             <div className="space-y-6">
               {blogNotice && (
@@ -2721,7 +2642,7 @@ export function AdminPortalPage({
                     <div className="flex flex-wrap gap-2">
                       <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg cursor-pointer">
                         <ImagePlus className="w-3.5 h-3.5" aria-hidden="true" />
-                        <span>Upload File</span>
+                        <span>Upload Featured Image</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -2729,29 +2650,6 @@ export function AdminPortalPage({
                           className="hidden"
                         />
                       </label>
-
-                      <select
-                        aria-label="Choose preset yard photo"
-                        value={
-                          PRESET_GALLERY.some((g) => g.url === blogCoverImage)
-                            ? blogCoverImage
-                            : ''
-                        }
-                        onChange={(e) => {
-                          if (e.target.value) setBlogCoverImage(e.target.value);
-                        }}
-                        className="flex-1 min-w-[130px] px-2 py-1.5 bg-[#F8F9FA] border border-slate-300 rounded-lg"
-                      >
-                        <option value="">Yard Presets...</option>
-                        <option value="/src/assets/images/hero_yokohama_port_1795543166709.jpg">
-                          Yokohama Export Port
-                        </option>
-                        {PRESET_GALLERY.map((g) => (
-                          <option key={g.url} value={g.url}>
-                            {g.label}
-                          </option>
-                        ))}
-                      </select>
                     </div>
 
                     <div className="flex gap-1.5">
@@ -2790,18 +2688,54 @@ export function AdminPortalPage({
                       Manage published articles, toggle drafts, edit copy, or preview live pages.
                     </p>
                   </div>
-                  <div className="relative w-full sm:w-64">
-                    <Search
-                      className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                      aria-hidden="true"
-                    />
-                    <input
-                      type="text"
-                      value={blogSearch}
-                      onChange={(e) => setBlogSearch(e.target.value)}
-                      placeholder="Filter posts..."
-                      className="w-full pl-8 pr-3 py-1.5 text-xs bg-[#F8F9FA] border border-slate-300 rounded-lg focus:outline-none focus:border-[#B91C1C]"
-                    />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="relative w-full sm:w-64">
+                      <Search
+                        className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                        aria-hidden="true"
+                      />
+                      <input
+                        type="text"
+                        value={blogSearch}
+                        onChange={(e) => setBlogSearch(e.target.value)}
+                        placeholder="Filter posts..."
+                        className="w-full pl-8 pr-3 py-1.5 text-xs bg-[#F8F9FA] border border-slate-300 rounded-lg focus:outline-none focus:border-[#B91C1C]"
+                      />
+                    </div>
+                    {blogPosts.length > 0 && (
+                      confirmClearBlogs ? (
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const count = blogPosts.length;
+                              onClearAllBlogPosts();
+                              setConfirmClearBlogs(false);
+                              setActionToast(`Deleted all ${count} blog posts.`);
+                            }}
+                            className="px-3 py-1.5 text-xs font-semibold text-white bg-[#B91C1C] hover:bg-[#991B1B] rounded-lg cursor-pointer"
+                          >
+                            Confirm Clear All ({blogPosts.length})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmClearBlogs(false)}
+                            className="px-2.5 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmClearBlogs(true)}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-[#B91C1C] bg-red-50 border border-red-200 hover:bg-red-100 rounded-lg cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+                          <span>Clear All Posts</span>
+                        </button>
+                      )
+                    )}
                   </div>
                 </div>
 
@@ -2880,11 +2814,15 @@ export function AdminPortalPage({
                             </button>
                             <button
                               type="button"
-                              onClick={() => onDeleteBlogPost(post.id)}
+                              onClick={() => {
+                                onDeleteBlogPost(post.id);
+                                setActionToast(`Deleted blog post "${post.title}".`);
+                              }}
                               aria-label={`Delete post ${post.title}`}
-                              className="p-1 text-slate-400 hover:text-[#B91C1C] rounded cursor-pointer align-middle"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-[#B91C1C] bg-red-50 hover:bg-red-100 rounded cursor-pointer align-middle"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash2 className="w-3 h-3" aria-hidden="true" />
+                              <span>Delete</span>
                             </button>
                           </td>
                         </tr>

@@ -180,6 +180,7 @@ export function PortalSearchHero({
               <option value="Diesel">Diesel</option>
               <option value="Hybrid">Hybrid</option>
               <option value="Petrol">Petrol</option>
+              <option value="Gasoline">Gasoline</option>
             </select>
           </div>
 

@@ -128,8 +128,6 @@ function parseLocationRoute(vehicles: Vehicle[]): PageRoute {
   if (target.startsWith('/staff-portal') || target.startsWith('/admin')) {
     if (target.includes('add-car')) return { name: 'admin', tab: 'add-car' };
     if (target.includes('inventory')) return { name: 'admin', tab: 'inventory' };
-    if (target.includes('chassis-reports'))
-      return { name: 'admin', tab: 'chassis-reports' };
     if (target.includes('blog-posts')) return { name: 'admin', tab: 'blog-posts' };
     if (target.includes('users')) return { name: 'admin', tab: 'users' };
     return { name: 'admin', tab: 'queries' };
@@ -178,12 +176,12 @@ export default function App() {
   const [vehicles, setVehicles] = useState<Vehicle[]>(() => {
     try {
       const saved = localStorage.getItem(VEHICLES_STORAGE_KEY);
-      if (saved) {
+      if (saved !== null) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
       const legacy = localStorage.getItem(LEGACY_VEHICLES_STORAGE_KEY);
-      if (legacy) {
+      if (legacy !== null) {
         const parsedLegacy = JSON.parse(legacy);
         if (Array.isArray(parsedLegacy)) {
           const seedIds = new Set(VEHICLES.map((v) => v.id));
@@ -228,9 +226,9 @@ export default function App() {
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>(() => {
     try {
       const saved = localStorage.getItem(BLOG_STORAGE_KEY);
-      if (saved) {
+      if (saved !== null) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch {
       // Fallback to seeded blog posts
@@ -473,6 +471,19 @@ export default function App() {
     setCompareIds((prev) => prev.filter((id) => id !== vehicleId));
   };
 
+  const handleBulkDeleteVehicles = (vehicleIds: string[]) => {
+    const idSet = new Set(vehicleIds);
+    setVehicles((prev) => prev.filter((v) => !idSet.has(v.id)));
+    setInquiryList((prev) => prev.filter((v) => !idSet.has(v.id)));
+    setCompareIds((prev) => prev.filter((id) => !idSet.has(id)));
+  };
+
+  const handleClearAllVehicles = () => {
+    setVehicles([]);
+    setInquiryList([]);
+    setCompareIds([]);
+  };
+
   const handleUpdateQueryStatus = (
     queryId: string,
     status: QueryStatus,
@@ -489,6 +500,10 @@ export default function App() {
 
   const handleDeleteQuery = (queryId: string) => {
     setQueries((prev) => prev.filter((q) => q.id !== queryId));
+  };
+
+  const handleClearAllQueries = () => {
+    setQueries([]);
   };
 
   const handleResetFilters = () => {
@@ -1057,41 +1072,45 @@ export default function App() {
           />
         )}
 
-        {route.name === 'blog-post' && (
-          <BlogSinglePage
-            post={
+        {route.name === 'blog-post' &&
+          (() => {
+            const targetPost =
               blogPosts.find((p) => p.slug === route.slug) ||
               blogPosts.find((p) => p.status === 'Published') ||
-              blogPosts[0]
+              blogPosts[0];
+            if (!targetPost) {
+              return (
+                <BlogListPage
+                  posts={blogPosts}
+                  onOpenPost={(post) => navigate({ name: 'blog-post', slug: post.slug })}
+                  onNavigate={navigate}
+                />
+              );
             }
-            allPosts={blogPosts}
-            onOpenPost={(post) => navigate({ name: 'blog-post', slug: post.slug })}
-            onNavigate={navigate}
-          />
-        )}
+            return (
+              <BlogSinglePage
+                post={targetPost}
+                allPosts={blogPosts}
+                onOpenPost={(post) => navigate({ name: 'blog-post', slug: post.slug })}
+                onNavigate={navigate}
+              />
+            );
+          })()}
 
         {route.name === 'admin' && (
           <AdminPortalPage
             initialTab={route.tab}
             vehicles={vehicles}
             queries={queries}
-            chassisReports={chassisReports}
             blogPosts={blogPosts}
             onAddVehicle={handleAddVehicle}
             onUpdateVehicle={handleUpdateVehicle}
             onDeleteVehicle={handleDeleteVehicle}
+            onBulkDeleteVehicles={handleBulkDeleteVehicles}
+            onClearAllVehicles={handleClearAllVehicles}
             onUpdateQueryStatus={handleUpdateQueryStatus}
             onDeleteQuery={handleDeleteQuery}
-            onAddChassisReport={(rep) =>
-              setChassisReports((prev) => [rep, ...prev])
-            }
-            onDeleteChassisReport={(id) =>
-              setChassisReports((prev) => prev.filter((r) => r.id !== id))
-            }
-            onViewChassisReport={(chassisNo) => {
-              setSelectedChassisForReport(chassisNo);
-              navigate({ name: 'page', slug: 'chassis-check' });
-            }}
+            onClearAllQueries={handleClearAllQueries}
             onAddBlogPost={(post) => setBlogPosts((prev) => [post, ...prev])}
             onUpdateBlogPost={(updated) =>
               setBlogPosts((prev) =>
@@ -1101,6 +1120,7 @@ export default function App() {
             onDeleteBlogPost={(id) =>
               setBlogPosts((prev) => prev.filter((p) => p.id !== id))
             }
+            onClearAllBlogPosts={() => setBlogPosts([])}
             onViewBlogPost={(post) =>
               navigate({ name: 'blog-post', slug: post.slug })
             }

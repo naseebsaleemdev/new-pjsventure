@@ -51,7 +51,6 @@ export type PageRoute =
         | 'queries'
         | 'add-car'
         | 'inventory'
-        | 'chassis-reports'
         | 'blog-posts'
         | 'users';
     };
@@ -99,7 +98,7 @@ export interface ChassisInspectionReport {
   year: number;
   month: number;
   engineCc: number;
-  fuel: 'Petrol' | 'Diesel' | 'Hybrid';
+  fuel: 'Petrol' | 'Gasoline' | 'Diesel' | 'Hybrid';
   transmission: 'Automatic' | 'CVT' | 'Manual';
   drive: '4WD' | '2WD' | 'AWD';
   color: string;
@@ -172,7 +171,7 @@ export interface Vehicle {
   bodyType: Exclude<BodyType, 'All'>;
   chassisCode: string;
   engineCc: number;
-  fuel: 'Petrol' | 'Diesel' | 'Hybrid';
+  fuel: 'Petrol' | 'Gasoline' | 'Diesel' | 'Hybrid';
   transmission: 'Automatic' | 'CVT' | 'Manual';
   drive: '4WD' | '2WD' | 'AWD';
   steering: SteeringSide;
