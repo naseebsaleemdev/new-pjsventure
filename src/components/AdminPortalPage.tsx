@@ -281,19 +281,27 @@ export function AdminPortalPage({
     filteredQueries[0] ||
     null;
 
+  const safeJson = async (res: Response) => {
+    const ct = res.headers.get('content-type') || '';
+    if (!ct.includes('application/json')) return null;
+    try {
+      return await res.json();
+    } catch {
+      return null;
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const res = await fetch('/api/admin/auth-status');
-        if (res.ok) {
-          const data = await res.json();
-          if (!cancelled) {
-            setAuthStatus({
-              initialized: Boolean(data.initialized),
-              envPasscodeActive: Boolean(data.envPasscodeActive),
-            });
-          }
+        const data = await safeJson(res);
+        if (res.ok && data && !cancelled) {
+          setAuthStatus({
+            initialized: Boolean(data.initialized),
+            envPasscodeActive: Boolean(data.envPasscodeActive),
+          });
         }
       } catch {
         // Ignore network error during initial status probe
@@ -311,11 +319,9 @@ export function AdminPortalPage({
       const res = await fetch('/api/admin/users', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data.users)) {
-          setStaffUsers(data.users);
-        }
+      const data = await safeJson(res);
+      if (res.ok && data && Array.isArray(data.users)) {
+        setStaffUsers(data.users);
       }
     } catch {
       // Ignore fetch failure
@@ -347,9 +353,12 @@ export function AdminPortalPage({
           password: loginPassword,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setAuthError(data.error || 'Could not create admin account.');
+      const data = await safeJson(res);
+      if (!res.ok || !data?.token) {
+        setAuthError(
+          data?.error ||
+            'Staff API endpoint did not respond. Redeploy with vercel.json and /api/index.ts.'
+        );
         return;
       }
       setAuthToken(data.token);
@@ -377,9 +386,12 @@ export function AdminPortalPage({
           password: loginPassword,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setAuthError(data.error || 'Invalid credentials.');
+      const data = await safeJson(res);
+      if (!res.ok || !data?.token) {
+        setAuthError(
+          data?.error ||
+            'Invalid credentials or staff API endpoint unavailable.'
+        );
         return;
       }
       setAuthToken(data.token);
@@ -428,9 +440,9 @@ export function AdminPortalPage({
           password: newUserPassword,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setUserError(data.error || 'Failed to add staff user.');
+      const data = await safeJson(res);
+      if (!res.ok || !data?.user) {
+        setUserError(data?.error || 'Failed to add staff user.');
         return;
       }
       setStaffUsers((prev) => [data.user, ...prev]);
@@ -455,13 +467,13 @@ export function AdminPortalPage({
         },
         body: JSON.stringify({ active: !target.active }),
       });
-      const data = await res.json();
-      if (res.ok && data.user) {
+      const data = await safeJson(res);
+      if (res.ok && data?.user) {
         setStaffUsers((prev) =>
           prev.map((u) => (u.id === data.user.id ? data.user : u))
         );
       } else {
-        setUserError(data.error || 'Could not update user status.');
+        setUserError(data?.error || 'Could not update user status.');
       }
     } catch {
       setUserError('Network error while updating user.');
@@ -476,11 +488,11 @@ export function AdminPortalPage({
         method: 'DELETE',
         headers: { Authorization: `Bearer ${authToken}` },
       });
-      const data = await res.json();
+      const data = await safeJson(res);
       if (res.ok) {
         setStaffUsers((prev) => prev.filter((u) => u.id !== userId));
       } else {
-        setUserError(data.error || 'Could not delete user.');
+        setUserError(data?.error || 'Could not delete user.');
       }
     } catch {
       setUserError('Network error while deleting user.');

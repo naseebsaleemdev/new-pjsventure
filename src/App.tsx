@@ -101,9 +101,10 @@ const FOOTER_PAGE_SLUGS: FooterPageSlug[] = [
 ];
 
 function parseLocationRoute(vehicles: Vehicle[]): PageRoute {
-  const path = window.location.pathname;
+  const rawPath = window.location.pathname;
   const hash = window.location.hash.replace(/^#/, '');
-  const target = path && path !== '/' ? path : hash;
+  const rawTarget = rawPath && rawPath !== '/' ? rawPath : hash;
+  const target = rawTarget.length > 1 ? rawTarget.replace(/\/+$/, '') : rawTarget;
 
   if (target === '/used-cars') return { name: 'used-cars' };
   if (target === '/port-balance') return { name: 'port-balance' };
