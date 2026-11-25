@@ -1,11 +1,24 @@
 export type BodyType =
   | 'All'
   | 'SUV'
-  | 'Sedan'
-  | 'Hatchback'
-  | 'Van / Mini Van'
+  | 'Truck'
+  | 'Pick up'
   | 'Pickup'
-  | 'Truck';
+  | 'Van'
+  | 'Mini Van'
+  | 'Van / Mini Van'
+  | 'Sedan'
+  | 'Bus'
+  | 'Hatchback'
+  | 'Coupe'
+  | 'Convertible'
+  | 'Wagon'
+  | 'Mini Bus'
+  | 'Machinery'
+  | 'Forklift'
+  | 'Tractor'
+  | 'Tractor Head'
+  | 'Motorcycle';
 
 export type SteeringSide = 'RHD' | 'LHD';
 
@@ -98,7 +111,7 @@ export interface ChassisInspectionReport {
   year: number;
   month: number;
   engineCc: number;
-  fuel: 'Petrol' | 'Gasoline' | 'Diesel' | 'Hybrid';
+  fuel: 'Petrol' | 'Gasoline' | 'Diesel' | 'Hybrid' | 'Electric';
   transmission: 'Automatic' | 'CVT' | 'Manual';
   drive: '4WD' | '2WD' | 'AWD';
   color: string;
@@ -171,7 +184,7 @@ export interface Vehicle {
   bodyType: Exclude<BodyType, 'All'>;
   chassisCode: string;
   engineCc: number;
-  fuel: 'Petrol' | 'Gasoline' | 'Diesel' | 'Hybrid';
+  fuel: 'Petrol' | 'Gasoline' | 'Diesel' | 'Hybrid' | 'Electric';
   transmission: 'Automatic' | 'CVT' | 'Manual';
   drive: '4WD' | '2WD' | 'AWD';
   steering: SteeringSide;
@@ -183,11 +196,13 @@ export interface Vehicle {
   interiorGrade: string;
   exteriorGrade: string;
   yardPort: 'Yokohama' | 'Nagoya' | 'Kobe' | 'Hakata' | 'Osaka';
+  stockCountry?: string;
   stockLocation?: StockLocationType;
   portBalancePort?: string;
   depositUsd?: number;
   portBalanceUsd?: number;
   fobUsd: number;
+  discountPct?: number;
   m3Volume: number;
   imageUrl: string;
   galleryImages?: string[];

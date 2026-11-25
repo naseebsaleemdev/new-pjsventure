@@ -1604,8 +1604,21 @@ export function AdminPortalPage({
                     <option value="Sedan">Sedan</option>
                     <option value="Hatchback">Hatchback</option>
                     <option value="Van / Mini Van">Van / Mini Van</option>
+                    <option value="Van">Van</option>
+                    <option value="Mini Van">Mini Van</option>
                     <option value="Pickup">Pickup</option>
+                    <option value="Pick up">Pick up</option>
                     <option value="Truck">Truck</option>
+                    <option value="Bus">Bus</option>
+                    <option value="Mini Bus">Mini Bus</option>
+                    <option value="Coupe">Coupe</option>
+                    <option value="Convertible">Convertible</option>
+                    <option value="Wagon">Wagon</option>
+                    <option value="Machinery">Machinery</option>
+                    <option value="Forklift">Forklift</option>
+                    <option value="Tractor">Tractor</option>
+                    <option value="Tractor Head">Tractor Head</option>
+                    <option value="Motorcycle">Motorcycle</option>
                   </select>
                 </div>
 
@@ -1680,6 +1693,7 @@ export function AdminPortalPage({
                     <option value="Gasoline">Gasoline</option>
                     <option value="Petrol">Petrol</option>
                     <option value="Hybrid">Hybrid</option>
+                    <option value="Electric">Electric</option>
                     <option value="Diesel">Diesel</option>
                   </select>
                 </div>
@@ -1741,7 +1755,7 @@ export function AdminPortalPage({
                     id="add-fob"
                     type="number"
                     required
-                    min={1000}
+                    min={100}
                     value={fobUsd}
                     onChange={(e) => setFobUsd(Number(e.target.value))}
                     className="w-full px-3 py-2 text-sm font-mono font-bold bg-[#F8F9FA] border border-slate-300 rounded-lg"

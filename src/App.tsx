@@ -42,9 +42,16 @@ import { InquiryDrawer } from './components/InquiryDrawer';
 import { Navbar } from './components/Navbar';
 import { PortalSearchHero } from './components/PortalSearchHero';
 import {
+  DiscountBracket,
   PortalSidebar,
   PriceBracket,
   SpecialFilter,
+  matchesBodyTypeFilter,
+  matchesDiscountBracket,
+  matchesMakeFilter,
+  matchesPriceBracket,
+  matchesSpecialCategory,
+  matchesStockCountry,
 } from './components/PortalSidebar';
 import { PortBalancePage } from './components/PortBalancePage';
 import { UsedCarsPage } from './components/UsedCarsPage';
@@ -304,7 +311,9 @@ export default function App() {
   const [yearFrom, setYearFrom] = useState<string>('All');
   const [maxFob, setMaxFob] = useState<string>('All');
   const [priceBracket, setPriceBracket] = useState<PriceBracket>('all');
+  const [discountBracket, setDiscountBracket] = useState<DiscountBracket>('all');
   const [specialFilter, setSpecialFilter] = useState<SpecialFilter>('all');
+  const [selectedStockCountry, setSelectedStockCountry] = useState<string>('All');
   const [selectedYard, setSelectedYard] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortBy, setSortBy] = useState<SortOption>('fob-asc');
@@ -347,25 +356,17 @@ export default function App() {
     const query = searchQuery.trim().toLowerCase();
 
     const list = japanYardVehicles.filter((v) => {
-      if (selectedMake !== 'All' && v.make !== selectedMake) return false;
-      if (selectedBodyType !== 'All' && v.bodyType !== selectedBodyType) return false;
+      if (!matchesMakeFilter(v.make, selectedMake)) return false;
+      if (!matchesBodyTypeFilter(v.bodyType, selectedBodyType)) return false;
       if (selectedFuel !== 'All' && v.fuel !== selectedFuel) return false;
       if (selectedSteering !== 'All' && v.steering !== selectedSteering) return false;
       if (selectedYard !== 'All' && v.yardPort !== selectedYard) return false;
       if (yearFrom !== 'All' && v.year < Number(yearFrom)) return false;
       if (maxFob !== 'All' && v.fobUsd > Number(maxFob)) return false;
-
-      if (priceBracket === 'under-10k' && v.fobUsd >= 10000) return false;
-      if (priceBracket === '10k-20k' && (v.fobUsd < 10000 || v.fobUsd > 20000)) return false;
-      if (priceBracket === '20k-30k' && (v.fobUsd <= 20000 || v.fobUsd > 30000)) return false;
-      if (priceBracket === 'over-30k' && v.fobUsd <= 30000) return false;
-
-      if (specialFilter === 'hybrid' && v.fuel !== 'Hybrid') return false;
-      if (specialFilter === 'diesel-4wd' && !(v.fuel === 'Diesel' && v.drive !== '2WD'))
-        return false;
-      if (specialFilter === 'low-mileage' && v.mileageKm >= 35000) return false;
-      if (specialFilter === 'lhd' && v.steering !== 'LHD') return false;
-      if (specialFilter === 'grade-45' && parseFloat(v.auctionGrade) < 4.5) return false;
+      if (!matchesPriceBracket(v.fobUsd, priceBracket)) return false;
+      if (!matchesDiscountBracket(v.discountPct, discountBracket)) return false;
+      if (!matchesSpecialCategory(v, specialFilter)) return false;
+      if (!matchesStockCountry(v, selectedStockCountry)) return false;
 
       if (query) {
         const haystack =
@@ -397,7 +398,9 @@ export default function App() {
     yearFrom,
     maxFob,
     priceBracket,
+    discountBracket,
     specialFilter,
+    selectedStockCountry,
     searchQuery,
     sortBy,
   ]);
@@ -514,7 +517,9 @@ export default function App() {
     setYearFrom('All');
     setMaxFob('All');
     setPriceBracket('all');
+    setDiscountBracket('all');
     setSpecialFilter('all');
+    setSelectedStockCountry('All');
     setSelectedYard('All');
     setSearchQuery('');
     setSortBy('fob-asc');
@@ -619,40 +624,97 @@ export default function App() {
             />
 
             <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6">
-              {/* Mobile Sidebar Toggle */}
+              {/* Mobile Sidebar Drawer Trigger */}
               <div className="lg:hidden mb-4">
                 <button
                   type="button"
-                  onClick={() => setShowMobileSidebar((prev) => !prev)}
+                  onClick={() => setShowMobileSidebar(true)}
                   className="w-full py-2.5 px-4 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <SlidersHorizontal className="w-4 h-4" aria-hidden="true" />
-                  <span>
-                    {showMobileSidebar
-                      ? 'Hide Directory Filters'
-                      : 'Browse by Make, Body Type & Price'}
-                  </span>
+                  <span>Shop By Make, Price, Type &amp; Categories</span>
                 </button>
               </div>
 
-              <div className="flex flex-col lg:flex-row gap-6 items-start">
-                {/* Left Directory Sidebar */}
+              {/* Mobile Slide-Over Catalog Filter Sidebar */}
+              {showMobileSidebar && (
                 <div
-                  className={`${
-                    showMobileSidebar ? 'block' : 'hidden'
-                  } lg:block w-full lg:w-64 shrink-0`}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Vehicle Filter Sidebar"
+                  className="fixed inset-0 z-50 lg:hidden flex"
                 >
+                  <div
+                    className="fixed inset-0 bg-slate-950/50 backdrop-blur-[1px]"
+                    onClick={() => setShowMobileSidebar(false)}
+                    aria-hidden="true"
+                  />
+                  <div className="relative z-10 w-80 max-w-[86vw] h-[100dvh] bg-[#F1F5F9] shadow-2xl flex flex-col">
+                    <div className="px-4 py-3 bg-[#0F172A] text-white flex items-center justify-between shrink-0">
+                      <span className="font-display text-sm font-bold">
+                        Browse Directory Filters
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowMobileSidebar(false)}
+                        aria-label="Close filter sidebar"
+                        className="p-1 rounded hover:bg-white/10 cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3">
+                      <PortalSidebar
+                        vehicles={japanYardVehicles}
+                        selectedMake={selectedMake}
+                        selectedBodyType={selectedBodyType}
+                        priceBracket={priceBracket}
+                        discountBracket={discountBracket}
+                        specialFilter={specialFilter}
+                        selectedStockCountry={selectedStockCountry}
+                        selectedYard={selectedYard}
+                        onSelectMake={setSelectedMake}
+                        onSelectBodyType={setSelectedBodyType}
+                        onSelectPriceBracket={setPriceBracket}
+                        onSelectDiscountBracket={setDiscountBracket}
+                        onSelectSpecialFilter={setSpecialFilter}
+                        onSelectStockCountry={setSelectedStockCountry}
+                        onSelectYard={setSelectedYard}
+                        onResetAll={handleResetFilters}
+                        onItemSelected={() => setShowMobileSidebar(false)}
+                      />
+                    </div>
+                    <div className="p-3 bg-white border-t border-slate-200 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setShowMobileSidebar(false)}
+                        className="w-full py-2.5 px-4 text-xs font-semibold text-white bg-[#B91C1C] hover:bg-[#991B1B] rounded-lg cursor-pointer tabular-nums"
+                      >
+                        Show {filteredVehicles.length} Matching Vehicles
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-col lg:flex-row gap-6 items-start">
+                {/* Desktop Left Directory Sidebar */}
+                <div className="hidden lg:block w-full lg:w-64 shrink-0">
                   <PortalSidebar
                     vehicles={japanYardVehicles}
                     selectedMake={selectedMake}
                     selectedBodyType={selectedBodyType}
                     priceBracket={priceBracket}
+                    discountBracket={discountBracket}
                     specialFilter={specialFilter}
+                    selectedStockCountry={selectedStockCountry}
                     selectedYard={selectedYard}
                     onSelectMake={setSelectedMake}
                     onSelectBodyType={setSelectedBodyType}
                     onSelectPriceBracket={setPriceBracket}
+                    onSelectDiscountBracket={setDiscountBracket}
                     onSelectSpecialFilter={setSpecialFilter}
+                    onSelectStockCountry={setSelectedStockCountry}
                     onSelectYard={setSelectedYard}
                     onResetAll={handleResetFilters}
                   />
@@ -894,7 +956,9 @@ export default function App() {
             yearFrom={yearFrom}
             maxFob={maxFob}
             priceBracket={priceBracket}
+            discountBracket={discountBracket}
             specialFilter={specialFilter}
+            selectedStockCountry={selectedStockCountry}
             portBalanceCount={portBalanceVehicles.length}
             selectedYard={selectedYard}
             searchQuery={searchQuery}
@@ -911,7 +975,9 @@ export default function App() {
             onChangeYearFrom={setYearFrom}
             onChangeMaxFob={setMaxFob}
             onChangePriceBracket={setPriceBracket}
+            onChangeDiscountBracket={setDiscountBracket}
             onChangeSpecialFilter={setSpecialFilter}
+            onChangeStockCountry={setSelectedStockCountry}
             onChangeYard={setSelectedYard}
             onChangeSearchQuery={setSearchQuery}
             onChangeSortBy={setSortBy}

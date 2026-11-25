@@ -7,6 +7,7 @@ import {
   RotateCcw,
   Search,
   SlidersHorizontal,
+  X,
 } from 'lucide-react';
 import {
   BodyType,
@@ -16,7 +17,12 @@ import {
   SteeringSide,
   Vehicle,
 } from '../types/vehicle';
-import { PortalSidebar, PriceBracket, SpecialFilter } from './PortalSidebar';
+import {
+  DiscountBracket,
+  PortalSidebar,
+  PriceBracket,
+  SpecialFilter,
+} from './PortalSidebar';
 import { VehicleCard } from './VehicleCard';
 import { VehicleRowCard } from './VehicleRowCard';
 
@@ -32,7 +38,9 @@ interface UsedCarsPageProps {
   yearFrom: string;
   maxFob: string;
   priceBracket: PriceBracket;
+  discountBracket: DiscountBracket;
   specialFilter: SpecialFilter;
+  selectedStockCountry: string;
   portBalanceCount: number;
   selectedYard: string;
   searchQuery: string;
@@ -49,7 +57,9 @@ interface UsedCarsPageProps {
   onChangeYearFrom: (year: string) => void;
   onChangeMaxFob: (maxFob: string) => void;
   onChangePriceBracket: (bracket: PriceBracket) => void;
+  onChangeDiscountBracket: (bracket: DiscountBracket) => void;
   onChangeSpecialFilter: (filter: SpecialFilter) => void;
+  onChangeStockCountry: (country: string) => void;
   onChangeYard: (yard: string) => void;
   onChangeSearchQuery: (q: string) => void;
   onChangeSortBy: (sort: SortOption) => void;
@@ -64,11 +74,23 @@ interface UsedCarsPageProps {
 const BODY_OPTIONS: BodyType[] = [
   'All',
   'SUV',
-  'Sedan',
-  'Hatchback',
-  'Van / Mini Van',
-  'Pickup',
   'Truck',
+  'Pick up',
+  'Van',
+  'Sedan',
+  'Bus',
+  'Mini Van',
+  'Van / Mini Van',
+  'Hatchback',
+  'Coupe',
+  'Convertible',
+  'Wagon',
+  'Mini Bus',
+  'Machinery',
+  'Forklift',
+  'Tractor',
+  'Tractor Head',
+  'Motorcycle',
 ];
 
 export function UsedCarsPage({
@@ -81,7 +103,9 @@ export function UsedCarsPage({
   yearFrom,
   maxFob,
   priceBracket,
+  discountBracket,
   specialFilter,
+  selectedStockCountry,
   portBalanceCount,
   selectedYard,
   searchQuery,
@@ -98,7 +122,9 @@ export function UsedCarsPage({
   onChangeYearFrom,
   onChangeMaxFob,
   onChangePriceBracket,
+  onChangeDiscountBracket,
   onChangeSpecialFilter,
+  onChangeStockCountry,
   onChangeYard,
   onChangeSearchQuery,
   onChangeSortBy,
@@ -122,7 +148,9 @@ export function UsedCarsPage({
     yearFrom !== 'All' ||
     maxFob !== 'All' ||
     priceBracket !== 'all' ||
+    discountBracket !== 'all' ||
     specialFilter !== 'all' ||
+    selectedStockCountry !== 'All' ||
     selectedYard !== 'All' ||
     searchQuery.trim() !== '';
 
@@ -239,6 +267,7 @@ export function UsedCarsPage({
               <option value="Gasoline">Gasoline</option>
               <option value="Diesel">Diesel</option>
               <option value="Hybrid">Hybrid</option>
+              <option value="Electric">Electric</option>
             </select>
           </div>
 
@@ -344,40 +373,97 @@ export function UsedCarsPage({
         </div>
       </section>
 
-      {/* Mobile Sidebar Toggle */}
+      {/* Mobile Sidebar Drawer Trigger */}
       <div className="lg:hidden">
         <button
           type="button"
-          onClick={() => setShowMobileSidebar((prev) => !prev)}
+          onClick={() => setShowMobileSidebar(true)}
           className="w-full py-2.5 px-4 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 flex items-center justify-center gap-2 cursor-pointer"
         >
           <SlidersHorizontal className="w-4 h-4" aria-hidden="true" />
-          <span>
-            {showMobileSidebar
-              ? 'Hide Directory Sidebar'
-              : 'Filter by Make, Body Type & FOB Price'}
-          </span>
+          <span>Shop By Make, Price, Type &amp; Categories</span>
         </button>
       </div>
 
-      {/* Main 2-Column SBT Directory & List Layout */}
-      <div className="flex flex-col lg:flex-row gap-6 items-start">
+      {/* Mobile Slide-Over Catalog Filter Sidebar */}
+      {showMobileSidebar && (
         <div
-          className={`${
-            showMobileSidebar ? 'block' : 'hidden'
-          } lg:block w-full lg:w-64 shrink-0`}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Vehicle Filter Sidebar"
+          className="fixed inset-0 z-50 lg:hidden flex"
         >
+          <div
+            className="fixed inset-0 bg-slate-950/50 backdrop-blur-[1px]"
+            onClick={() => setShowMobileSidebar(false)}
+            aria-hidden="true"
+          />
+          <div className="relative z-10 w-80 max-w-[86vw] h-[100dvh] bg-[#F1F5F9] shadow-2xl flex flex-col">
+            <div className="px-4 py-3 bg-[#0F172A] text-white flex items-center justify-between shrink-0">
+              <span className="font-display text-sm font-bold">
+                Browse Directory Filters
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowMobileSidebar(false)}
+                aria-label="Close filter sidebar"
+                className="p-1 rounded hover:bg-white/10 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3">
+              <PortalSidebar
+                vehicles={vehicles}
+                selectedMake={selectedMake}
+                selectedBodyType={selectedBodyType}
+                priceBracket={priceBracket}
+                discountBracket={discountBracket}
+                specialFilter={specialFilter}
+                selectedStockCountry={selectedStockCountry}
+                selectedYard={selectedYard}
+                onSelectMake={onChangeMake}
+                onSelectBodyType={onChangeBodyType}
+                onSelectPriceBracket={onChangePriceBracket}
+                onSelectDiscountBracket={onChangeDiscountBracket}
+                onSelectSpecialFilter={onChangeSpecialFilter}
+                onSelectStockCountry={onChangeStockCountry}
+                onSelectYard={onChangeYard}
+                onResetAll={onResetFilters}
+                onItemSelected={() => setShowMobileSidebar(false)}
+              />
+            </div>
+            <div className="p-3 bg-white border-t border-slate-200 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowMobileSidebar(false)}
+                className="w-full py-2.5 px-4 text-xs font-semibold text-white bg-[#B91C1C] hover:bg-[#991B1B] rounded-lg cursor-pointer tabular-nums"
+              >
+                Show {filteredVehicles.length} Matching Vehicles
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main 2-Column Directory & List Layout */}
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
+        <div className="hidden lg:block w-full lg:w-64 shrink-0">
           <PortalSidebar
             vehicles={vehicles}
             selectedMake={selectedMake}
             selectedBodyType={selectedBodyType}
             priceBracket={priceBracket}
+            discountBracket={discountBracket}
             specialFilter={specialFilter}
+            selectedStockCountry={selectedStockCountry}
             selectedYard={selectedYard}
             onSelectMake={onChangeMake}
             onSelectBodyType={onChangeBodyType}
             onSelectPriceBracket={onChangePriceBracket}
+            onSelectDiscountBracket={onChangeDiscountBracket}
             onSelectSpecialFilter={onChangeSpecialFilter}
+            onSelectStockCountry={onChangeStockCountry}
             onSelectYard={onChangeYard}
             onResetAll={onResetFilters}
           />

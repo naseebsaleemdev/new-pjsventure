@@ -179,6 +179,7 @@ export function PortalSearchHero({
               <option value="All">All Fuel Types</option>
               <option value="Diesel">Diesel</option>
               <option value="Hybrid">Hybrid</option>
+              <option value="Electric">Electric</option>
               <option value="Petrol">Petrol</option>
               <option value="Gasoline">Gasoline</option>
             </select>
