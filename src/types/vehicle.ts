@@ -212,23 +212,33 @@ export interface Vehicle {
   availability: 'Ready to Ship' | 'New Arrival' | 'Port Balance';
 }
 
+export type PortRegion =
+  | 'East Africa'
+  | 'West Africa'
+  | 'Southern Africa'
+  | 'North Africa'
+  | 'Middle East'
+  | 'South Asia'
+  | 'Southeast & East Asia'
+  | 'Oceania'
+  | 'UK & Europe'
+  | 'Caribbean'
+  | 'North & Central America'
+  | 'South America';
+
 export interface DestinationPort {
   id: string;
   country: string;
+  countryCode?: string;
   portName: string;
-  region:
-    | 'East Africa'
-    | 'Southern Africa'
-    | 'Caribbean'
-    | 'South Asia'
-    | 'UK & Europe'
-    | 'Oceania'
-    | 'Middle East';
+  region: PortRegion;
   roroRatePerM3: number;
   containerFlatUsd: number;
   transitDays: string;
   mandatoryInspection: string;
   insuranceRatePct: number;
+  lat?: number;
+  lng?: number;
 }
 
 export type QueryType =

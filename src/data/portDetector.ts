@@ -1,182 +1,206 @@
 import { DestinationPort } from '../types/vehicle';
 import { DESTINATION_PORTS } from './ports';
 
-const PORT_COORDS: Record<string, { lat: number; lng: number }> = {
-  mombasa: { lat: -4.0435, lng: 39.6682 },
-  'dar-es-salaam': { lat: -6.8235, lng: 39.2695 },
-  durban: { lat: -29.8587, lng: 31.0218 },
-  kingston: { lat: 17.9714, lng: -76.7931 },
-  'port-of-spain': { lat: 10.6549, lng: -61.5019 },
-  southampton: { lat: 50.9097, lng: -1.4044 },
-  colombo: { lat: 6.9271, lng: 79.8612 },
-  karachi: { lat: 24.8607, lng: 67.0011 },
-  suva: { lat: -18.1416, lng: 178.4419 },
-  'jebel-ali': { lat: 25.0113, lng: 55.0612 },
-};
-
-const COUNTRY_TO_PORT_ID: Record<string, string> = {
-  // Primary direct ports
-  KE: 'mombasa',
-  TZ: 'dar-es-salaam',
-  ZA: 'durban',
-  JM: 'kingston',
-  TT: 'port-of-spain',
-  GB: 'southampton',
-  UK: 'southampton',
-  LK: 'colombo',
-  PK: 'karachi',
-  FJ: 'suva',
-  AE: 'jebel-ali',
-
+const REGIONAL_FALLBACK_PORT_ID: Record<string, string> = {
   // East Africa gateway (Mombasa)
   UG: 'mombasa',
   RW: 'mombasa',
   BI: 'mombasa',
   SS: 'mombasa',
-  ET: 'mombasa',
+  ET: 'djibouti',
   SO: 'mombasa',
-  DJ: 'mombasa',
+  ER: 'djibouti',
 
-  // Central/East Africa corridor (Dar es Salaam)
+  // Central / East Africa corridor (Dar es Salaam / Beira)
   ZM: 'dar-es-salaam',
-  MW: 'dar-es-salaam',
+  MW: 'beira',
   CD: 'dar-es-salaam',
 
-  // Southern Africa gateway (Durban)
+  // Southern Africa gateway (Durban / Walvis Bay)
   ZW: 'durban',
   BW: 'durban',
-  MZ: 'durban',
-  NA: 'durban',
   SZ: 'durban',
   LS: 'durban',
-  AO: 'durban',
+
+  // West Africa landlocked
+  BF: 'tema',
+  ML: 'dakar',
+  NE: 'cotonou',
+  TD: 'douala',
+  CF: 'douala',
 
   // South Asia
   AF: 'karachi',
-  BD: 'colombo',
-  MV: 'colombo',
-  NP: 'colombo',
+  NP: 'chattogram',
+  BT: 'chattogram',
   IN: 'colombo',
-  BT: 'colombo',
 
   // Middle East
-  SA: 'jebel-ali',
-  OM: 'jebel-ali',
-  QA: 'jebel-ali',
-  KW: 'jebel-ali',
-  BH: 'jebel-ali',
-  JO: 'jebel-ali',
-  IQ: 'jebel-ali',
-  EG: 'jebel-ali',
-  YE: 'jebel-ali',
+  KW: 'dammam',
+  BH: 'dammam',
 
   // Caribbean
-  BS: 'kingston',
   KY: 'kingston',
   TC: 'kingston',
-  DO: 'kingston',
-  HT: 'kingston',
-  CU: 'kingston',
-  BB: 'port-of-spain',
-  GY: 'port-of-spain',
-  SR: 'port-of-spain',
-  LC: 'port-of-spain',
+  HT: 'santo-domingo',
+  LC: 'bridgetown',
   GD: 'port-of-spain',
   VC: 'port-of-spain',
-  AG: 'port-of-spain',
-  DM: 'port-of-spain',
-  KN: 'port-of-spain',
-  BZ: 'kingston',
+  AG: 'bridgetown',
+  DM: 'bridgetown',
+  KN: 'bridgetown',
+  BZ: 'puerto-cortes',
 
   // Oceania
-  PG: 'suva',
-  WS: 'suva',
-  TO: 'suva',
-  SB: 'suva',
   VU: 'suva',
-  NZ: 'suva',
-  AU: 'suva',
 
-  // UK & Europe
-  IE: 'southampton',
-  DE: 'southampton',
-  FR: 'southampton',
-  NL: 'southampton',
-  BE: 'southampton',
-  ES: 'southampton',
-  IT: 'southampton',
-  PT: 'southampton',
-  SE: 'southampton',
-  NO: 'southampton',
-  DK: 'southampton',
-  FI: 'southampton',
-  PL: 'southampton',
-  CY: 'southampton',
-  MT: 'southampton',
-  GR: 'southampton',
-  AT: 'southampton',
-  CH: 'southampton',
+  // Europe landlocked / nearby
+  AT: 'hamburg',
+  CH: 'rotterdam',
+  CZ: 'hamburg',
+  SK: 'gdansk',
+  HU: 'rijeka',
+  LU: 'antwerp',
 };
 
 const TIMEZONE_TO_PORT_ID: Record<string, string> = {
   'Asia/Karachi': 'karachi',
   'Asia/Kabul': 'karachi',
+  'Asia/Colombo': 'colombo',
+  'Asia/Dhaka': 'chattogram',
+  'Asia/Kathmandu': 'chattogram',
+  'Asia/Kolkata': 'colombo',
+  'Asia/Calcutta': 'colombo',
+  'Asia/Bangkok': 'laem-chabang',
+  'Asia/Singapore': 'singapore',
+  'Asia/Kuala_Lumpur': 'port-klang',
+  'Asia/Jakarta': 'jakarta',
+  'Asia/Manila': 'manila',
+  'Asia/Yangon': 'yangon',
+  'Asia/Rangoon': 'yangon',
+  'Asia/Hong_Kong': 'hong-kong',
+  'Asia/Taipei': 'kaohsiung',
+  'Asia/Shanghai': 'qingdao',
+  'Asia/Seoul': 'busan',
+  'Asia/Dubai': 'jebel-ali',
+  'Asia/Muscat': 'sohar',
+  'Asia/Qatar': 'doha',
+  'Asia/Riyadh': 'dammam',
+  'Asia/Kuwait': 'dammam',
+  'Asia/Bahrain': 'dammam',
+  'Asia/Amman': 'aqaba',
+  'Asia/Beirut': 'beirut',
+  'Asia/Baghdad': 'umm-qasr',
+  'Asia/Jerusalem': 'ashdod',
+  'Asia/Aden': 'aden',
+  'Asia/Vladivostok': 'vladivostok',
+
   'Africa/Nairobi': 'mombasa',
   'Africa/Kampala': 'mombasa',
   'Africa/Kigali': 'mombasa',
   'Africa/Bujumbura': 'mombasa',
   'Africa/Juba': 'mombasa',
-  'Africa/Addis_Ababa': 'mombasa',
+  'Africa/Addis_Ababa': 'djibouti',
+  'Africa/Djibouti': 'djibouti',
   'Africa/Mogadishu': 'mombasa',
   'Africa/Dar_es_Salaam': 'dar-es-salaam',
   'Africa/Lusaka': 'dar-es-salaam',
-  'Africa/Blantyre': 'dar-es-salaam',
+  'Africa/Blantyre': 'beira',
   'Africa/Lubumbashi': 'dar-es-salaam',
   'Africa/Johannesburg': 'durban',
   'Africa/Harare': 'durban',
   'Africa/Gaborone': 'durban',
-  'Africa/Maputo': 'durban',
-  'Africa/Windhoek': 'durban',
+  'Africa/Maputo': 'maputo',
+  'Africa/Windhoek': 'walvis-bay',
   'Africa/Mbabane': 'durban',
   'Africa/Maseru': 'durban',
-  'America/Jamaica': 'kingston',
-  'America/Nassau': 'kingston',
-  'America/Cayman': 'kingston',
-  'America/Port_of_Spain': 'port-of-spain',
-  'America/Barbados': 'port-of-spain',
-  'America/Guyana': 'port-of-spain',
+  'Africa/Luanda': 'luanda',
+  'Africa/Lagos': 'lagos',
+  'Africa/Accra': 'tema',
+  'Africa/Abidjan': 'abidjan',
+  'Africa/Dakar': 'dakar',
+  'Africa/Douala': 'douala',
+  'Africa/Libreville': 'libreville',
+  'Africa/Monrovia': 'monrovia',
+  'Africa/Freetown': 'freetown',
+  'Africa/Conakry': 'conakry',
+  'Africa/Banjul': 'banjul',
+  'Africa/Lome': 'lome',
+  'Africa/Porto-Novo': 'cotonou',
+  'Africa/Cairo': 'alexandria',
+  'Africa/Casablanca': 'casablanca',
+  'Africa/Algiers': 'algiers',
+  'Africa/Tunis': 'tunis',
+  'Africa/Tripoli': 'tripoli',
+  'Africa/Khartoum': 'port-sudan',
+  'Indian/Mauritius': 'port-louis',
+  'Indian/Antananarivo': 'toamasina',
+
   'Europe/London': 'southampton',
-  'Europe/Dublin': 'southampton',
-  'Asia/Colombo': 'colombo',
-  'Asia/Dhaka': 'colombo',
-  'Asia/Kathmandu': 'colombo',
-  'Asia/Kolkata': 'colombo',
-  'Asia/Calcutta': 'colombo',
+  'Europe/Dublin': 'dublin',
+  'Europe/Amsterdam': 'rotterdam',
+  'Europe/Brussels': 'antwerp',
+  'Europe/Berlin': 'hamburg',
+  'Europe/Paris': 'marseille',
+  'Europe/Madrid': 'valencia',
+  'Europe/Lisbon': 'lisbon',
+  'Europe/Stockholm': 'gothenburg',
+  'Europe/Oslo': 'oslo',
+  'Europe/Warsaw': 'gdansk',
+  'Europe/Vilnius': 'klaipeda',
+  'Europe/Tallinn': 'tallinn',
+  'Europe/Athens': 'piraeus',
+  'Europe/Bucharest': 'constanta',
+  'Europe/Zagreb': 'rijeka',
+  'Europe/Istanbul': 'istanbul',
+
+  'America/Jamaica': 'kingston',
+  'America/Nassau': 'nassau',
+  'America/Port_of_Spain': 'port-of-spain',
+  'America/Barbados': 'bridgetown',
+  'America/Guyana': 'georgetown',
+  'America/Santo_Domingo': 'santo-domingo',
+  'America/Havana': 'havana',
+  'America/Paramaribo': 'paramaribo',
+  'America/Curacao': 'willemstad',
+  'America/Los_Angeles': 'long-beach',
+  'America/Vancouver': 'vancouver',
+  'America/New_York': 'newark',
+  'America/Toronto': 'montreal',
+  'America/Halifax': 'halifax',
+  'America/Chicago': 'savannah',
+  'America/Mexico_City': 'veracruz',
+  'America/Panama': 'manzanillo-pa',
+  'America/Costa_Rica': 'puerto-limon',
+  'America/Tegucigalpa': 'puerto-cortes',
+  'America/Bogota': 'cartagena',
+  'America/Guayaquil': 'guayaquil',
+  'America/Lima': 'callao',
+  'America/Santiago': 'valparaiso',
+  'America/Sao_Paulo': 'santos',
+  'America/Buenos_Aires': 'buenos-aires',
+  'America/Argentina/Buenos_Aires': 'buenos-aires',
+  'America/Montevideo': 'montevideo',
+
   'Pacific/Fiji': 'suva',
-  'Pacific/Auckland': 'suva',
-  'Pacific/Port_Moresby': 'suva',
-  'Australia/Sydney': 'suva',
-  'Australia/Melbourne': 'suva',
-  'Australia/Brisbane': 'suva',
-  'Asia/Dubai': 'jebel-ali',
-  'Asia/Muscat': 'jebel-ali',
-  'Asia/Qatar': 'jebel-ali',
-  'Asia/Riyadh': 'jebel-ali',
-  'Asia/Kuwait': 'jebel-ali',
-  'Asia/Bahrain': 'jebel-ali',
+  'Pacific/Auckland': 'auckland',
+  'Pacific/Port_Moresby': 'port-moresby',
+  'Pacific/Apia': 'apia',
+  'Pacific/Tongatapu': 'nukualofa',
+  'Pacific/Guadalcanal': 'honiara',
+  'Pacific/Noumea': 'noumea',
+  'Pacific/Tahiti': 'papeete',
+  'Pacific/Pago_Pago': 'pago-pago',
+  'Australia/Sydney': 'sydney',
+  'Australia/Melbourne': 'melbourne',
+  'Australia/Brisbane': 'brisbane',
+  'Australia/Adelaide': 'adelaide',
+  'Australia/Perth': 'fremantle',
 };
 
 function findPortById(portId: string | undefined): DestinationPort | undefined {
   if (!portId) return undefined;
   return DESTINATION_PORTS.find((p) => p.id === portId);
-}
-
-export function getPortByCountryCode(
-  countryCode: string | null | undefined
-): DestinationPort | null {
-  if (!countryCode) return null;
-  const portId = COUNTRY_TO_PORT_ID[countryCode.trim().toUpperCase()];
-  return findPortById(portId) ?? null;
 }
 
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -190,14 +214,17 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-export function getNearestPortByCoords(lat: number, lng: number): DestinationPort {
-  let best = DESTINATION_PORTS[0];
+export function getNearestPortFromList(
+  ports: DestinationPort[],
+  lat: number,
+  lng: number
+): DestinationPort {
+  let best = ports[0] || DESTINATION_PORTS[0];
   let bestDist = Infinity;
 
-  for (const port of DESTINATION_PORTS) {
-    const coords = PORT_COORDS[port.id];
-    if (!coords) continue;
-    const dist = haversineKm(lat, lng, coords.lat, coords.lng);
+  for (const port of ports) {
+    if (typeof port.lat !== 'number' || typeof port.lng !== 'number') continue;
+    const dist = haversineKm(lat, lng, port.lat, port.lng);
     if (dist < bestDist) {
       bestDist = dist;
       best = port;
@@ -207,17 +234,49 @@ export function getNearestPortByCoords(lat: number, lng: number): DestinationPor
   return best;
 }
 
+export function getNearestPortByCoords(lat: number, lng: number): DestinationPort {
+  return getNearestPortFromList(DESTINATION_PORTS, lat, lng);
+}
+
+export function getPortByCountryCode(
+  countryCode: string | null | undefined,
+  lat?: number | null,
+  lng?: number | null
+): DestinationPort | null {
+  if (!countryCode) return null;
+  const code = countryCode.trim().toUpperCase();
+  const normalized = code === 'UK' ? 'GB' : code;
+
+  const sameCountryPorts = DESTINATION_PORTS.filter(
+    (p) => p.countryCode?.toUpperCase() === normalized
+  );
+  if (sameCountryPorts.length > 0) {
+    if (typeof lat === 'number' && typeof lng === 'number') {
+      return getNearestPortFromList(sameCountryPorts, lat, lng);
+    }
+    return sameCountryPorts[0];
+  }
+
+  const regionalId = REGIONAL_FALLBACK_PORT_ID[normalized];
+  return findPortById(regionalId) ?? null;
+}
+
 export interface PortDetectionResult {
   port: DestinationPort;
   label: string;
   detected: boolean;
 }
 
+function getDefaultFallbackPort(): DestinationPort {
+  return findPortById('mombasa') || DESTINATION_PORTS[0];
+}
+
 export function detectPortSynchronously(): PortDetectionResult {
+  const fallback = getDefaultFallbackPort();
   if (typeof window === 'undefined') {
     return {
-      port: DESTINATION_PORTS[0],
-      label: DESTINATION_PORTS[0].country,
+      port: fallback,
+      label: fallback.country,
       detected: false,
     };
   }
@@ -234,9 +293,9 @@ export function detectPortSynchronously(): PortDetectionResult {
     }
 
     if (tz.startsWith('Europe/')) {
-      const ukPort = findPortById('southampton');
-      if (ukPort) {
-        return { port: ukPort, label: 'Europe', detected: true };
+      const euPort = findPortById('rotterdam') || findPortById('southampton');
+      if (euPort) {
+        return { port: euPort, label: 'Europe', detected: true };
       }
     }
 
@@ -255,8 +314,8 @@ export function detectPortSynchronously(): PortDetectionResult {
   }
 
   return {
-    port: DESTINATION_PORTS[0],
-    label: DESTINATION_PORTS[0].country,
+    port: fallback,
+    label: fallback.country,
     detected: false,
   };
 }
@@ -293,7 +352,7 @@ export async function autoDetectDestinationPort(): Promise<PortDetectionResult> 
   const edgeLng = typeof edgeGeo?.longitude === 'number' ? edgeGeo.longitude : null;
 
   if (edgeCountry) {
-    const byCountry = getPortByCountryCode(edgeCountry);
+    const byCountry = getPortByCountryCode(edgeCountry, edgeLat, edgeLng);
     if (byCountry) {
       return {
         port: byCountry,
@@ -311,7 +370,7 @@ export async function autoDetectDestinationPort(): Promise<PortDetectionResult> 
     }
   }
 
-  // 2. Public IP geolocation fallback (useful on local dev or non-Vercel proxies)
+  // 2. Public IP geolocation fallback (local dev / non-Vercel proxies)
   const ipGeo = await fetchJsonWithTimeout('https://ipwho.is/', 2500);
   if (ipGeo && ipGeo.success !== false) {
     const cc = typeof ipGeo.country_code === 'string' ? ipGeo.country_code : null;
@@ -321,7 +380,7 @@ export async function autoDetectDestinationPort(): Promise<PortDetectionResult> 
     const lat = typeof ipGeo.latitude === 'number' ? ipGeo.latitude : null;
     const lng = typeof ipGeo.longitude === 'number' ? ipGeo.longitude : null;
 
-    const byCountry = getPortByCountryCode(cc);
+    const byCountry = getPortByCountryCode(cc, lat, lng);
     if (byCountry) {
       return {
         port: byCountry,
@@ -374,7 +433,7 @@ export async function detectNearestPortWithBrowserGeo(): Promise<PortDetectionRe
       const nearest = getNearestPortByCoords(gpsCoords.lat, gpsCoords.lng);
       return {
         port: nearest,
-        label: `Nearest to GPS (${nearest.portName})`,
+        label: `Nearest (${nearest.portName})`,
         detected: true,
       };
     }

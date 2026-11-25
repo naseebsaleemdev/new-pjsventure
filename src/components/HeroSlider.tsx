@@ -1,137 +1,93 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowRight,
   ChevronLeft,
   ChevronRight,
   Gavel,
+  Pause,
+  Play,
   Ship,
 } from 'lucide-react';
-import { calculateVehicleCif } from '../data/ports';
 import { HERO_PORT_IMAGE } from '../data/vehicles';
-import { DestinationPort, ShippingMethod, Vehicle } from '../types/vehicle';
+import { DestinationPort } from '../types/vehicle';
 
 interface HeroSliderProps {
-  vehicles: Vehicle[];
   selectedPort: DestinationPort;
-  shippingMethod: ShippingMethod;
-  includeInsurance: boolean;
-  onInspectVehicle: (vehicle: Vehicle) => void;
   onRequestAuction: () => void;
 }
 
-interface SlideItem {
+interface BannerSlide {
   id: string;
+  label: string;
   kicker: string;
   headline: string;
   description: string;
   imageUrl: string;
   imageAlt: string;
-  vehicle?: Vehicle;
-  specs: { label: string; value: string }[];
 }
 
 export function HeroSlider({
-  vehicles,
   selectedPort,
-  shippingMethod,
-  includeInsurance,
-  onInspectVehicle,
   onRequestAuction,
 }: HeroSliderProps) {
-  const prado = vehicles.find((v) => v.id === 'pjv-prado-2022') ?? vehicles[0];
-  const alphard = vehicles.find((v) => v.id === 'pjv-alphard-2021') ?? vehicles[1];
-  const hilux = vehicles.find((v) => v.id === 'pjv-hilux-2022') ?? vehicles[2];
-
-  const slides: SlideItem[] = [
+  const slides: BannerSlide[] = [
     {
-      id: 'port-terminal',
-      kicker: 'Pjs Venture Co., Ltd. · Yokohama · Nagoya · Kobe · Hakata',
+      id: 'yokohama-terminal',
+      label: 'Yokohama Terminal',
+      kicker: `Pjs Venture Co., Ltd. · Yokohama · Nagoya · Kobe · Active Port: ${selectedPort.portName}`,
       headline: 'Direct Japanese Vehicle Exports, Inspected & Shipped Worldwide',
       description:
-        'Source auction-grade SUVs, executive vans, hybrids, and commercial trucks directly from Japan with verified JEVIC/JAAI inspection and transparent port-to-port CIF rates.',
+        'Port-side export yards across Japan with scheduled weekly ocean dispatch and transparent CIF freight to global destinations.',
       imageUrl: HERO_PORT_IMAGE,
-      imageAlt: 'Pjs Venture export vehicles staged at Yokohama deep-water Ro-Ro terminal',
-      specs: [
-        { label: 'Yard Stock', value: `${vehicles.length} Units Ready` },
-        { label: 'Inspection', value: 'JEVIC / JAAI' },
-        { label: 'Dispatch Avg', value: '14 Days' },
-        { label: 'Active Port', value: selectedPort.portName },
-      ],
+      imageAlt: 'Yokohama deep-water Ro-Ro vehicle export terminal and ocean carrier ship',
     },
-    ...(prado
-      ? [
-          {
-            id: prado.id,
-            kicker: `Featured SUV · Stock ${prado.stockNo} · ${prado.yardPort} Yard · Grade ${prado.auctionGrade}`,
-            headline: `${prado.year} ${prado.make} ${prado.model} ${prado.trim}`,
-            description:
-              'One-owner Tokyo registration with 2.8L turbo-diesel 4WD, tan leather 7-seat cabin, 360-degree camera, and full dealer service history.',
-            imageUrl: prado.imageUrl,
-            imageAlt: `${prado.year} ${prado.make} ${prado.model} ${prado.trim}`,
-            vehicle: prado,
-            specs: [
-              { label: 'Chassis', value: prado.chassisCode.split('-')[0] },
-              { label: 'Mileage', value: `${prado.mileageKm.toLocaleString()} km` },
-              { label: 'FOB Price', value: `$${prado.fobUsd.toLocaleString()}` },
-              {
-                label: `CIF ${selectedPort.portName}`,
-                value: `$${calculateVehicleCif(prado, selectedPort, shippingMethod, includeInsurance).totalCifUsd.toLocaleString()}`,
-              },
-            ],
-          },
-        ]
-      : []),
-    ...(alphard
-      ? [
-          {
-            id: alphard.id,
-            kicker: `Executive Minivan · Stock ${alphard.stockNo} · ${alphard.yardPort} Yard · Grade ${alphard.auctionGrade}`,
-            headline: `${alphard.year} ${alphard.make} ${alphard.model} ${alphard.trim}`,
-            description:
-              'Grade 5.0 executive chauffeur MPV featuring power ottoman captain chairs, twin moonroofs, dual power sliding doors, and JEVIC certification.',
-            imageUrl: alphard.imageUrl,
-            imageAlt: `${alphard.year} ${alphard.make} ${alphard.model} ${alphard.trim}`,
-            vehicle: alphard,
-            specs: [
-              { label: 'Chassis', value: alphard.chassisCode.split('-')[0] },
-              { label: 'Mileage', value: `${alphard.mileageKm.toLocaleString()} km` },
-              { label: 'FOB Price', value: `$${alphard.fobUsd.toLocaleString()}` },
-              {
-                label: `CIF ${selectedPort.portName}`,
-                value: `$${calculateVehicleCif(alphard, selectedPort, shippingMethod, includeInsurance).totalCifUsd.toLocaleString()}`,
-              },
-            ],
-          },
-        ]
-      : []),
-    ...(hilux
-      ? [
-          {
-            id: hilux.id,
-            kicker: `4WD Double-Cab · Stock ${hilux.stockNo} · ${hilux.yardPort} Yard · Grade ${hilux.auctionGrade}`,
-            headline: `${hilux.year} ${hilux.make} ${hilux.model} ${hilux.trim}`,
-            description:
-              'Black Rally Edition 4WD diesel pickup equipped with differential lock, all-terrain tires, heavy-duty bedliner, and QISJ export verification.',
-            imageUrl: hilux.imageUrl,
-            imageAlt: `${hilux.year} ${hilux.make} ${hilux.model} ${hilux.trim}`,
-            vehicle: hilux,
-            specs: [
-              { label: 'Chassis', value: hilux.chassisCode.split('-')[0] },
-              { label: 'Mileage', value: `${hilux.mileageKm.toLocaleString()} km` },
-              { label: 'FOB Price', value: `$${hilux.fobUsd.toLocaleString()}` },
-              {
-                label: `CIF ${selectedPort.portName}`,
-                value: `$${calculateVehicleCif(hilux, selectedPort, shippingMethod, includeInsurance).totalCifUsd.toLocaleString()}`,
-              },
-            ],
-          },
-        ]
-      : []),
+    {
+      id: 'roro-freight',
+      label: 'Ocean Ro-Ro Freight',
+      kicker: 'Scheduled Deep-Sea Voyages · Dedicated Ro-Ro & 20ft Container Lines',
+      headline: 'Reliable Maritime Logistics From Japan to Over 90 Global Ports',
+      description:
+        'Secured deck space on major roll-on/roll-off car carriers with marine transit coverage and live port documentation tracking.',
+      imageUrl: '/src/assets/images/hero_roro_vessel_1795612263313.jpg',
+      imageAlt: 'Deep-sea Ro-Ro ocean carrier cargo vessel sailing across calm Pacific waters at sunset',
+    },
+    {
+      id: 'pre-export-inspection',
+      label: 'JEVIC & JAAI Inspection',
+      kicker: 'Certified Export Compliance · Radiation · Odometer · Structural Audit',
+      headline: 'Verified Pre-Export Inspection Before Every Vessel Departure',
+      description:
+        'Independent JEVIC, JAAI, and QISJ clearance checks ensure strict destination compliance before your shipment leaves Japan.',
+      imageUrl: '/src/assets/images/hero_export_inspection_1795612263493.jpg',
+      imageAlt: 'Certified Japanese automotive pre-export inspection facility in Yokohama',
+    },
+    {
+      id: 'nagoya-container-port',
+      label: 'Auction & Port Dispatch',
+      kicker: 'Direct USS · TAA · HAA Auction Access · Nagoya Container Terminal',
+      headline: 'Fast Customs Clearance & Export Documentation Under One Roof',
+      description:
+        'From Japanese auction floor bidding to Export Certificate deregistration and Bill of Lading courier dispatch.',
+      imageUrl: '/src/assets/images/hero_container_logistics_1795612264707.jpg',
+      imageAlt: 'Nagoya deep-water international maritime container and freight shipping port',
+    },
   ];
 
   const [activeIndex, setActiveIndex] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isManualPaused, setIsManualPaused] = useState(false);
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
+  const touchStartXRef = useRef<number | null>(null);
+
+  const isPaused = isHovered || isManualPaused;
+
+  const goPrev = useCallback(() => {
+    setActiveIndex((prev) => (prev - 1 + slides.length) % slides.length);
+  }, [slides.length]);
+
+  const goNext = useCallback(() => {
+    setActiveIndex((prev) => (prev + 1) % slides.length);
+  }, [slides.length]);
 
   useEffect(() => {
     if (isPaused || slides.length <= 1) return;
@@ -144,40 +100,62 @@ export function HeroSlider({
 
     const timer = window.setInterval(() => {
       setActiveIndex((prev) => (prev + 1) % slides.length);
-    }, 6500);
+    }, 5500);
 
     return () => window.clearInterval(timer);
   }, [isPaused, slides.length]);
 
   const currentSlide = slides[activeIndex] ?? slides[0];
 
-  const goPrev = () => {
-    setActiveIndex((prev) => (prev - 1 + slides.length) % slides.length);
-  };
-
-  const goNext = () => {
-    setActiveIndex((prev) => (prev + 1) % slides.length);
-  };
-
   const handleBrowseInventory = () => {
     document.getElementById('stock-list')?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleRequestAuction = () => {
-    onRequestAuction();
+  const handleTouchStart = (e: React.TouchEvent<HTMLElement>) => {
+    touchStartXRef.current = e.touches[0]?.clientX ?? null;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLElement>) => {
+    const startX = touchStartXRef.current;
+    touchStartXRef.current = null;
+    if (startX === null) return;
+    const endX = e.changedTouches[0]?.clientX;
+    if (typeof endX !== 'number') return;
+    const delta = endX - startX;
+    if (Math.abs(delta) < 42) return;
+    if (delta > 0) {
+      goPrev();
+    } else {
+      goNext();
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      goPrev();
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      goNext();
+    }
   };
 
   return (
     <section
-      aria-label="Featured Export Inventory Slider"
-      className="relative w-full bg-slate-950 border-b border-slate-800 overflow-hidden"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-      onFocus={() => setIsPaused(true)}
-      onBlur={() => setIsPaused(false)}
+      aria-label="Pjs Venture Export Showcase Slider"
+      aria-roledescription="carousel"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onFocus={() => setIsHovered(true)}
+      onBlur={() => setIsHovered(false)}
+      className="relative w-full bg-slate-950 border-b border-slate-800 overflow-hidden focus:outline-none"
     >
-      {/* Background Slide Layers (Crossfade via Opacity only) */}
-      <div className="relative min-h-[380px] sm:min-h-[420px] lg:min-h-[460px] flex items-center">
+      <div className="relative min-h-[340px] sm:min-h-[410px] lg:min-h-[470px] flex items-end">
+        {/* Background Widescreen Image Slides */}
         {slides.map((slide, idx) => {
           const isActive = idx === activeIndex;
           const hasError = failedImages[slide.id];
@@ -185,7 +163,7 @@ export function HeroSlider({
             <div
               key={slide.id}
               aria-hidden={!isActive}
-              className={`absolute inset-0 transition-opacity duration-500 ease-out ${
+              className={`absolute inset-0 transition-opacity duration-700 ease-out ${
                 isActive ? 'opacity-100 z-0' : 'opacity-0 pointer-events-none z-0'
               }`}
             >
@@ -197,60 +175,68 @@ export function HeroSlider({
                   onError={() =>
                     setFailedImages((prev) => ({ ...prev, [slide.id]: true }))
                   }
-                  className="w-full h-full object-cover object-center"
+                  className={`w-full h-full object-cover object-center transition-transform duration-1000 ease-out ${
+                    isActive ? 'scale-100' : 'scale-[1.03]'
+                  }`}
                 />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-950 flex items-center justify-center">
                   <Ship className="w-16 h-16 text-slate-700" aria-hidden="true" />
                 </div>
               )}
+
+              {/* Contrast Scrims for Legibility while Preserving Clear Photography */}
               <div
                 aria-hidden="true"
-                className="absolute inset-0 bg-gradient-to-r from-slate-950/92 via-slate-950/75 to-slate-950/30"
+                className="absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-950/45 to-slate-950/15"
               />
               <div
                 aria-hidden="true"
-                className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-transparent to-slate-950/30"
+                className="absolute inset-0 bg-gradient-to-t from-slate-950/88 via-slate-950/25 to-transparent"
               />
             </div>
           );
         })}
 
-        {/* Foreground Content Container */}
-        <div className="relative z-10 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-12">
+        {/* Floating Edge Arrows (Desktop / Tablet) */}
+        <button
+          type="button"
+          onClick={goPrev}
+          aria-label="Previous banner slide"
+          className="hidden md:flex items-center justify-center absolute left-4 lg:left-6 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-slate-950/55 hover:bg-slate-950/85 text-white border border-white/20 backdrop-blur-xs transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+
+        <button
+          type="button"
+          onClick={goNext}
+          aria-label="Next banner slide"
+          className="hidden md:flex items-center justify-center absolute right-4 lg:right-6 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-slate-950/55 hover:bg-slate-950/85 text-white border border-white/20 backdrop-blur-xs transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+
+        {/* Foreground Editorial Copy & Thumbnail Controls */}
+        <div className="relative z-10 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-16 pt-16 pb-6 lg:pb-8">
           <div className="max-w-2xl">
-            <p className="font-mono text-xs font-medium tracking-wide text-slate-300">
+            <p className="text-xs font-medium tracking-wide text-slate-200/90">
               {currentSlide.kicker}
             </p>
 
-            <h1 className="mt-2.5 font-display text-2xl sm:text-4xl lg:text-[2.65rem] font-bold tracking-tight text-white leading-[1.12] [text-wrap:balance]">
+            <h1 className="mt-2 font-display text-2xl sm:text-4xl lg:text-[2.65rem] font-bold tracking-tight text-white leading-[1.12] [text-wrap:balance]">
               {currentSlide.headline}
             </h1>
 
-            <p className="mt-3 text-sm sm:text-base text-slate-200 leading-relaxed max-w-xl">
+            <p className="mt-2.5 text-sm sm:text-base text-slate-200 leading-relaxed max-w-xl">
               {currentSlide.description}
             </p>
 
-            {/* Tabular Quick Spec Strip */}
-            <dl className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4 py-3.5 px-4 bg-slate-950/65 backdrop-blur-xs border border-white/15 rounded-xl max-w-xl">
-              {currentSlide.specs.map((spec) => (
-                <div key={spec.label} className="min-w-0">
-                  <dt className="text-[11px] text-slate-400 truncate">
-                    {spec.label}
-                  </dt>
-                  <dd className="font-mono text-sm font-semibold text-white tabular-nums truncate mt-0.5">
-                    {spec.value}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-
-            {/* Primary & Secondary CTAs */}
-            <div className="mt-6 flex flex-wrap items-center gap-3">
+            <div className="mt-5 flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 onClick={handleBrowseInventory}
-                className="inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold text-white bg-[#B91C1C] hover:bg-[#991B1B] rounded-lg transition-colors duration-150 whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-[#B91C1C] hover:bg-[#991B1B] rounded-lg transition-colors duration-150 whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               >
                 <span>Browse Inventory</span>
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
@@ -258,28 +244,23 @@ export function HeroSlider({
 
               <button
                 type="button"
-                onClick={handleRequestAuction}
-                className="inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold text-slate-950 bg-white hover:bg-slate-100 rounded-lg transition-colors duration-150 whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                onClick={onRequestAuction}
+                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-slate-950/55 hover:bg-slate-950/80 border border-white/25 rounded-lg backdrop-blur-xs transition-colors duration-150 whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               >
-                <Gavel className="w-4 h-4 text-[#B91C1C]" aria-hidden="true" />
+                <Gavel className="w-4 h-4 text-slate-200" aria-hidden="true" />
                 <span>Request Auction Access</span>
               </button>
-
-              {currentSlide.vehicle && (
-                <button
-                  type="button"
-                  onClick={() => onInspectVehicle(currentSlide.vehicle!)}
-                  className="px-4 py-3 text-sm font-semibold text-white hover:text-slate-200 underline underline-offset-4 decoration-white/40 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-                >
-                  Inspect Unit Specs
-                </button>
-              )}
             </div>
           </div>
 
-          {/* Bottom Slider Controls & Slide Selectors */}
-          <div className="mt-8 pt-4 border-t border-white/15 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Choose slide">
+          {/* Bottom Image Thumbnail & Indicator Strip */}
+          <div className="mt-7 pt-4 border-t border-white/15 flex items-center justify-between gap-4">
+            {/* Desktop Thumbnail Previews */}
+            <div
+              className="hidden sm:flex items-center gap-2.5 overflow-x-auto"
+              role="tablist"
+              aria-label="Choose showcase slide"
+            >
               {slides.map((slide, idx) => {
                 const active = idx === activeIndex;
                 return (
@@ -289,29 +270,75 @@ export function HeroSlider({
                     role="tab"
                     aria-selected={active}
                     onClick={() => setActiveIndex(idx)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap cursor-pointer ${
+                    className={`group flex items-center gap-2.5 pr-3 pl-1.5 py-1.5 rounded-lg border transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                       active
-                        ? 'bg-white text-slate-950 font-semibold'
-                        : 'bg-white/10 text-slate-200 hover:bg-white/20'
+                        ? 'bg-white/15 border-white/60 text-white'
+                        : 'bg-slate-950/45 border-white/15 text-slate-300 hover:bg-slate-950/70 hover:text-white'
                     }`}
                   >
-                    {slide.vehicle
-                      ? `${slide.vehicle.make} ${slide.vehicle.model}`
-                      : 'Yokohama Terminal'}
+                    <span className="w-11 h-7 rounded overflow-hidden bg-slate-800 shrink-0 block">
+                      {!failedImages[slide.id] ? (
+                        <img
+                          src={slide.imageUrl}
+                          alt=""
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="w-full h-full flex items-center justify-center">
+                          <Ship className="w-3.5 h-3.5 text-slate-500" aria-hidden="true" />
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-xs font-medium">{slide.label}</span>
                   </button>
                 );
               })}
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-xs text-slate-300 tabular-nums mr-1">
+            {/* Mobile Dot Indicators */}
+            <div className="flex sm:hidden items-center gap-2" role="tablist" aria-label="Choose showcase slide">
+              {slides.map((slide, idx) => {
+                const active = idx === activeIndex;
+                return (
+                  <button
+                    key={slide.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    aria-label={slide.label}
+                    onClick={() => setActiveIndex(idx)}
+                    className={`h-2.5 rounded-full transition-all cursor-pointer ${
+                      active ? 'w-7 bg-white' : 'w-2.5 bg-white/40 hover:bg-white/65'
+                    }`}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Counter + Pause / Mobile Prev-Next */}
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="font-mono text-xs text-slate-200 tabular-nums mr-1">
                 0{activeIndex + 1} / 0{slides.length}
               </span>
               <button
                 type="button"
+                onClick={() => setIsManualPaused((prev) => !prev)}
+                aria-label={isManualPaused ? 'Resume slideshow' : 'Pause slideshow'}
+                title={isManualPaused ? 'Resume slideshow' : 'Pause slideshow'}
+                className="p-2 rounded-lg bg-slate-950/55 hover:bg-slate-950/85 text-white border border-white/20 transition-colors cursor-pointer"
+              >
+                {isManualPaused ? (
+                  <Play className="w-3.5 h-3.5" />
+                ) : (
+                  <Pause className="w-3.5 h-3.5" />
+                )}
+              </button>
+              <button
+                type="button"
                 onClick={goPrev}
                 aria-label="Previous slide"
-                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white border border-white/15 transition-colors cursor-pointer"
+                className="md:hidden p-2 rounded-lg bg-slate-950/55 hover:bg-slate-950/85 text-white border border-white/20 transition-colors cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -319,7 +346,7 @@ export function HeroSlider({
                 type="button"
                 onClick={goNext}
                 aria-label="Next slide"
-                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white border border-white/15 transition-colors cursor-pointer"
+                className="md:hidden p-2 rounded-lg bg-slate-950/55 hover:bg-slate-950/85 text-white border border-white/20 transition-colors cursor-pointer"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>

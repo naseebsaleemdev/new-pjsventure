@@ -666,7 +666,7 @@ export default function App() {
                   const found = DESTINATION_PORTS.find((p) => p.id === e.target.value);
                   if (found) handleSelectPortManual(found);
                 }}
-                className="px-2.5 py-1 text-xs font-medium bg-slate-800 border border-slate-700 rounded text-white focus:outline-none focus:border-[#B91C1C]"
+                className="max-w-[230px] sm:max-w-xs px-2.5 py-1 text-xs font-medium bg-slate-800 border border-slate-700 rounded text-white focus:outline-none focus:border-[#B91C1C]"
               >
                 {DESTINATION_PORTS.map((port) => (
                   <option key={port.id} value={port.id}>
@@ -717,11 +717,7 @@ export default function App() {
         {route.name === 'home' && (
           <>
             <HeroSlider
-              vehicles={vehicles}
               selectedPort={selectedPort}
-              shippingMethod={shippingMethod}
-              includeInsurance={includeInsurance}
-              onInspectVehicle={handleOpenVehicleSinglePage}
               onRequestAuction={() => navigate({ name: 'auction' })}
             />
 
