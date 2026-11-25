@@ -357,7 +357,7 @@ export function AdminPortalPage({
       if (!res.ok || !data?.token) {
         setAuthError(
           data?.error ||
-            'Staff API endpoint did not respond. Redeploy with vercel.json and /api/index.ts.'
+            `Staff API error (HTTP ${res.status}). Please redeploy and retry.`
         );
         return;
       }
