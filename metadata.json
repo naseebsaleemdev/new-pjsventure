@@ -1,0 +1,6 @@
+{
+  "name": "Pjs Venture",
+  "description": "Direct Japanese used vehicle exporter offering inspected SUVs, hybrids, executive vans, and commercial trucks with live FOB and CIF port-to-port shipping.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
