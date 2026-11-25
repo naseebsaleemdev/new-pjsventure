@@ -8,6 +8,7 @@ import {
   GitCompareArrows,
   LayoutGrid,
   List,
+  MapPin,
   RotateCcw,
   SlidersHorizontal,
   X,
@@ -62,6 +63,11 @@ import { INITIAL_BLOG_POSTS } from './data/initialBlogs';
 import { INITIAL_CHASSIS_REPORTS } from './data/chassisDecoder';
 import { INITIAL_PORTAL_QUERIES } from './data/initialQueries';
 import { DESTINATION_PORTS } from './data/ports';
+import {
+  autoDetectDestinationPort,
+  detectNearestPortWithBrowserGeo,
+  detectPortSynchronously,
+} from './data/portDetector';
 import { VEHICLES } from './data/vehicles';
 import {
   BlogPost,
@@ -320,10 +326,90 @@ export default function App() {
   const [homeViewMode, setHomeViewMode] = useState<'list' | 'grid'>('list');
   const [showMobileSidebar, setShowMobileSidebar] = useState<boolean>(false);
 
-  // Port & CIF Calculator State
-  const [selectedPort, setSelectedPort] = useState<DestinationPort>(DESTINATION_PORTS[0]);
+  // Port & CIF Calculator State (auto-detected from visitor location unless manually overridden)
+  const [selectedPort, setSelectedPort] = useState<DestinationPort>(() => {
+    try {
+      const manualFlag = localStorage.getItem('pjs_port_manual');
+      const savedId = localStorage.getItem('pjs_selected_port_id');
+      if (manualFlag === '1' && savedId) {
+        const found = DESTINATION_PORTS.find((p) => p.id === savedId);
+        if (found) return found;
+      }
+    } catch {
+      // Ignore storage errors
+    }
+    return detectPortSynchronously().port;
+  });
+  const [detectedLocationLabel, setDetectedLocationLabel] = useState<string | null>(() => {
+    try {
+      if (localStorage.getItem('pjs_port_manual') === '1') return null;
+    } catch {
+      // Ignore
+    }
+    const sync = detectPortSynchronously();
+    return sync.detected ? sync.label : null;
+  });
+  const [isDetectingPort, setIsDetectingPort] = useState<boolean>(false);
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>('Ro-Ro Vessel');
   const [includeInsurance, setIncludeInsurance] = useState<boolean>(true);
+
+  useEffect(() => {
+    let manual = false;
+    try {
+      manual = localStorage.getItem('pjs_port_manual') === '1';
+    } catch {
+      manual = false;
+    }
+    if (manual) return;
+
+    let cancelled = false;
+    setIsDetectingPort(true);
+    autoDetectDestinationPort()
+      .then((res) => {
+        if (cancelled) return;
+        if (res.detected) {
+          setSelectedPort(res.port);
+          setDetectedLocationLabel(res.label);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsDetectingPort(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleSelectPortManual = (port: DestinationPort) => {
+    setSelectedPort(port);
+    setDetectedLocationLabel(null);
+    try {
+      localStorage.setItem('pjs_selected_port_id', port.id);
+      localStorage.setItem('pjs_port_manual', '1');
+    } catch {
+      // Ignore storage errors
+    }
+  };
+
+  const handleRedetectPort = async () => {
+    setIsDetectingPort(true);
+    try {
+      localStorage.removeItem('pjs_port_manual');
+      localStorage.removeItem('pjs_selected_port_id');
+    } catch {
+      // Ignore storage errors
+    }
+    try {
+      const res = await detectNearestPortWithBrowserGeo();
+      setSelectedPort(res.port);
+      setDetectedLocationLabel(res.detected ? res.label : res.port.country);
+    } finally {
+      setIsDetectingPort(false);
+    }
+  };
 
   // Multi-Unit Inquiry Cart & Compare Selection
   const [inquiryList, setInquiryList] = useState<Vehicle[]>([]);
@@ -578,7 +664,7 @@ export default function App() {
                 value={selectedPort.id}
                 onChange={(e) => {
                   const found = DESTINATION_PORTS.find((p) => p.id === e.target.value);
-                  if (found) setSelectedPort(found);
+                  if (found) handleSelectPortManual(found);
                 }}
                 className="px-2.5 py-1 text-xs font-medium bg-slate-800 border border-slate-700 rounded text-white focus:outline-none focus:border-[#B91C1C]"
               >
@@ -588,6 +674,22 @@ export default function App() {
                   </option>
                 ))}
               </select>
+              <button
+                type="button"
+                onClick={handleRedetectPort}
+                disabled={isDetectingPort}
+                title="Automatically detect your nearest destination port from your location"
+                className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded text-emerald-300 disabled:opacity-60 cursor-pointer whitespace-nowrap"
+              >
+                <MapPin className="w-3 h-3 shrink-0" aria-hidden="true" />
+                <span>
+                  {isDetectingPort
+                    ? 'Detecting...'
+                    : detectedLocationLabel
+                      ? `Auto: ${detectedLocationLabel}`
+                      : 'Auto-Detect'}
+                </span>
+              </button>
 
               <div className="flex items-center p-0.5 bg-slate-800 border border-slate-700 rounded">
                 {(['Ro-Ro Vessel', 'Container (20ft)'] as ShippingMethod[]).map((method) => (
@@ -938,7 +1040,7 @@ export default function App() {
 
             <ExportProcessSection
               selectedPort={selectedPort}
-              onSelectPort={setSelectedPort}
+              onSelectPort={handleSelectPortManual}
             />
 
             <ClientTrustCarousel />
@@ -1015,7 +1117,7 @@ export default function App() {
             includeInsurance={includeInsurance}
             isInInquiry={inquiryList.some((item) => item.id === activeSingleVehicle.id)}
             isInCompare={compareIds.includes(activeSingleVehicle.id)}
-            onChangePort={setSelectedPort}
+            onChangePort={handleSelectPortManual}
             onChangeShippingMethod={setShippingMethod}
             onChangeInsurance={setIncludeInsurance}
             onToggleInquiry={toggleInquiryVehicle}
@@ -1118,7 +1220,7 @@ export default function App() {
         {(route.name === 'how-to-buy' || route.name === 'ports') && (
           <HowToBuyPage
             selectedPort={selectedPort}
-            onSelectPort={setSelectedPort}
+            onSelectPort={handleSelectPortManual}
             onBackToStock={() => navigate({ name: 'home' })}
           />
         )}
@@ -1269,7 +1371,7 @@ export default function App() {
         selectedPort={selectedPort}
         shippingMethod={shippingMethod}
         includeInsurance={includeInsurance}
-        onChangePort={setSelectedPort}
+        onChangePort={handleSelectPortManual}
         onChangeShippingMethod={setShippingMethod}
         onRemoveVehicle={(id) =>
           setInquiryList((prev) => prev.filter((item) => item.id !== id))

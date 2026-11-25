@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Building2, CheckCircle2, Mail, MapPin, Phone } from 'lucide-react';
 import { DESTINATION_PORTS } from '../data/ports';
 import { DestinationPort, PortalQuery } from '../types/vehicle';
@@ -22,6 +22,10 @@ export function ContactPage({
   const [subject, setSubject] = useState('Dealer Partnership & Bulk Export Inquiry');
   const [notes, setNotes] = useState('');
   const [submitted, setSubmitted] = useState<PortalQuery | null>(null);
+
+  useEffect(() => {
+    setPortId(selectedPort.id);
+  }, [selectedPort.id]);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();

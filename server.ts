@@ -9,6 +9,10 @@ async function startServer() {
   const app = express();
   app.use(express.json({ limit: '2mb' }));
 
+  app.get('/api/location', (req: Request, res: Response) => {
+    void handleAdminRequest(req, res);
+  });
+
   app.use('/api/admin', (req: Request, res: Response) => {
     void handleAdminRequest(req, res);
   });

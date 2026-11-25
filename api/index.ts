@@ -191,6 +191,9 @@ async function readJsonBody(req: AdminRequest): Promise<Record<string, unknown>>
 
 function normalizeRoutePath(rawUrl: string | undefined): string {
   const pathOnly = (rawUrl || '/').split('?')[0].replace(/\/+$/, '') || '/';
+  if (pathOnly === '/api/location' || pathOnly === '/location') {
+    return '/location';
+  }
   if (pathOnly.startsWith('/api/admin')) {
     return pathOnly.slice('/api/admin'.length) || '/';
   }
@@ -214,6 +217,45 @@ export async function handleAdminRequest(
   }
 
   try {
+    if (method === 'GET' && routePath === '/location') {
+      const readHeader = (name: string): string => {
+        const val = req.headers[name];
+        return typeof val === 'string' ? val.trim() : '';
+      };
+
+      const rawCountry =
+        readHeader('x-vercel-ip-country') ||
+        readHeader('cf-ipcountry') ||
+        readHeader('x-country-code');
+      const countryCode =
+        rawCountry && rawCountry !== 'XX' && rawCountry !== 'T1'
+          ? rawCountry.toUpperCase()
+          : null;
+
+      const rawCity = readHeader('x-vercel-ip-city');
+      let city: string | null = null;
+      if (rawCity) {
+        try {
+          city = decodeURIComponent(rawCity);
+        } catch {
+          city = rawCity;
+        }
+      }
+
+      const region = readHeader('x-vercel-ip-country-region') || null;
+      const latNum = Number.parseFloat(readHeader('x-vercel-ip-latitude'));
+      const lngNum = Number.parseFloat(readHeader('x-vercel-ip-longitude'));
+
+      sendJson(res, 200, {
+        countryCode,
+        city,
+        region,
+        latitude: Number.isFinite(latNum) ? latNum : null,
+        longitude: Number.isFinite(lngNum) ? lngNum : null,
+      });
+      return;
+    }
+
     if (method === 'GET' && routePath === '/auth-status') {
       const users = loadUsers();
       const envPasscode = (process.env.ADMIN_PASSCODE || '').trim();
